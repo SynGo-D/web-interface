@@ -23,7 +23,7 @@ export default function LoginForm() {
     // Senior Developer
     if (
         email === "developer@codereview.com" &&
-        password === "S"
+        password === "developer123"
     ) {
         router.push("/repository");
         return;

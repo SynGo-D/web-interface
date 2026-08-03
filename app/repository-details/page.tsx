@@ -97,7 +97,7 @@ export default function RepositoryDetailsPage() {
                 </div>
 
                 <button
-                    onClick={() => router.push("/dashboard")}
+                    onClick={() => {window.location.href = "/api/auth/github"}}
                     className="mt-8 rounded-lg bg-[#4338CA] px-6 py-3 font-semibold text-white transition hover:opacity-90"
                 >
                 Authorize Repository
