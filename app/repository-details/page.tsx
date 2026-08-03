@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface Repository {
   name: string;
@@ -17,6 +18,7 @@ interface Repository {
 }
 
 export default function RepositoryDetailsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
 
@@ -95,7 +97,8 @@ export default function RepositoryDetailsPage() {
                 </div>
 
                 <button
-                className="mt-8 rounded-lg bg-[#4338CA] px-6 py-3 font-semibold text-white transition hover:opacity-90"
+                    onClick={() => router.push("/dashboard")}
+                    className="mt-8 rounded-lg bg-[#4338CA] px-6 py-3 font-semibold text-white transition hover:opacity-90"
                 >
                 Authorize Repository
                 </button>

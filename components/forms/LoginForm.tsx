@@ -9,14 +9,36 @@ export default function LoginForm() {
     const [password, setPassword] = useState("");
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+  e.preventDefault();
 
-        console.log({
-            email,
-            password,
-        });
+  // Administrator
+  if (
+    email === "admin@codereview.com" &&
+    password === "admin123"
+    ) {
+        router.push("/admin/dashboard");
+        return;
+    }
 
+    // Senior Developer
+    if (
+        email === "developer@codereview.com" &&
+        password === "S"
+    ) {
         router.push("/repository");
+        return;
+    }
+
+    // Project Manager
+    if (
+        email === "manager@codereview.com" &&
+        password === "manager123"
+    ) {
+        router.push("/manager/dashboard");
+        return;
+    }
+
+    alert("Invalid email or password.");
     };
 
     return (
