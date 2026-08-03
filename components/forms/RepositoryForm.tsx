@@ -1,71 +1,77 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function RepositoryForm() {
+  const router = useRouter();
   const [repositoryUrl, setRepositoryUrl] = useState("");
-  const [branch, setBranch] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log({
-      repositoryUrl,
-      branch,
-    });
+    try {
+      setLoading(true);
 
-    // Later connect this with backend API
+      const response = await fetch("/api/repository", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          repositoryUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Failed to connect repository.");
+        return;
+      }
+
+      router.push(
+        `/repository-details?repo=${encodeURIComponent(repositoryUrl)}`
+      );
+
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+
   return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-      {/* Repository URL */}
-      <div>
-        <label
-          htmlFor="repository"
-          className="mb-2 block text-sm font-medium text-gray-700"
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            Repository URL
+          </label>
+
+          <input
+            type="url"
+            placeholder="https://github.com/user/project"
+            value={repositoryUrl}
+            onChange={(e)=>setRepositoryUrl(e.target.value)}
+            className="w-full rounded-lg border px-4 py-3 text-black"
+            required
+          />
+        </div>
+
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-lg bg-[#4338CA] py-3 text-white"
         >
-          Repository URL
-        </label>
+          {loading ? "Connecting..." : "Connect Repository"}
+        </button>
 
-        <input
-          id="repository"
-          type="url"
-          placeholder="https://github.com/user/project"
-          value={repositoryUrl}
-          onChange={(e) => setRepositoryUrl(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-black outline-none transition caret-[#4338CA] focus:border-[#4338CA]"
-          required
-        />
-      </div>
-
-      {/* Branch */}
-      <div>
-        <label
-          htmlFor="branch"
-          className="mb-2 block text-sm font-medium text-gray-700"
-        >
-          Branch
-        </label>
-
-        <input
-          id="branch"
-          type="text"
-          placeholder="main"
-          value={branch}
-          onChange={(e) => setBranch(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-black outline-none transition caret-[#4338CA] focus:border-[#4338CA]"
-          required
-        />
-      </div>
-
-      {/* Submit Button */}
-      <button
-        type="submit"
-        className="mt-4 w-full rounded-lg bg-[#4338CA] py-3 font-semibold text-white transition hover:opacity-90"
-      >
-        Connect Repository
-      </button>
-    </form>
+      </form>
+    </div>
   );
 }
