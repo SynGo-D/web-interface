@@ -39,11 +39,11 @@ export default function Sidebar() {
 
       {/* Logo */}
       <div className="shrink-0 border-b border-white/10 px-6 py-6">
-        <h1 className="text-xl font-bold">
+        <h1 className="text-2xl font-bold">
           CodeReview
         </h1>
 
-        <p className="mt-1 text-xs text-indigo-200">
+        <p className="mt-1 text-md text-indigo-200">
           Developer Dashboard
         </p>
       </div>
@@ -62,7 +62,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition ${
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-medium transition ${
                   isActive
                     ? "bg-white text-[#4338CA]"
                     : "text-white hover:bg-white/10"
