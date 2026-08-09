@@ -3,141 +3,104 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import {
-  FiHome,
-  FiFolder,
-  FiGithub,
-  FiGitPullRequest,
-  FiSearch,
-  FiBarChart2,
-  FiCpu,
-  FiLogOut,
-} from "react-icons/fi";
-
-const menuItems = [
-  {
-    name: "Dashboard",
-    href: "/developer/dashboard",
-    icon: FiHome,
-  },
-  {
-    name: "Projects",
-    href: "/developer/projects",
-    icon: FiFolder,
-  },
-  {
-    name: "Repositories",
-    href: "/developer/repositories",
-    icon: FiGithub,
-  },
-  {
-    name: "Pull Requests",
-    href: "/developer/pull-requests",
-    icon: FiGitPullRequest,
-  },
-  {
-    name: "Code Review",
-    href: "/developer/code-review",
-    icon: FiSearch,
-  },
-  {
-    name: "Debt Calculation",
-    href: "/developer/debt-calculation",
-    icon: FiBarChart2,
-  },
-  {
-    name: "AI Code Fixing",
-    href: "/developer/ai-code-fixing",
-    icon: FiCpu,
-  },
-];
-
-const bottomItems = [
-  {
-    name: "Logout",
-    href: "/",
-    icon: FiLogOut,
-  },
-];
-
 export default function Sidebar() {
   const pathname = usePathname();
 
-  return (
-    <aside className="flex h-screen w-72 flex-col bg-[#4338CA] text-white shadow-xl">
+  const menuItems = [
+    {
+      name: "Dashboard",
+      href: "/dashboard",
+      icon: "▦",
+    },
+    {
+      name: "Repositories",
+      href: "/repository",
+      icon: "◈",
+    },
+    {
+      name: "Code Review",
+      href: "/dashboard/code-review",
+      icon: "✓",
+    },
+    {
+      name: "Debt Calculation",
+      href: "/dashboard/debt",
+      icon: "▥",
+    },
+    {
+      name: "AI Code Fixing",
+      href: "/dashboard/ai-fixing",
+      icon: "⚙",
+    },
+  ];
 
-      <div className="border-b border-indigo-500 px-6 py-6">
-        <h1 className="text-2xl font-bold">
-          Code Review
+  return (
+    <aside className="fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col bg-[#4338CA] text-white shadow-lg">
+
+      {/* Logo */}
+      <div className="shrink-0 border-b border-white/10 px-6 py-6">
+        <h1 className="text-xl font-bold">
+          CodeReview
         </h1>
 
-        <p className="mt-1 text-sm text-indigo-200">
+        <p className="mt-1 text-xs text-indigo-200">
           Developer Dashboard
         </p>
       </div>
 
+
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-4 py-6">
 
-        <p className="mb-3 px-3 text-xs uppercase tracking-wider text-indigo-200">
-          Main Menu
-        </p>
-
         <div className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
 
-            const active = pathname === item.href;
+          {menuItems.map((item) => {
+
+            const isActive = pathname === item.href;
 
             return (
               <Link
-                key={item.name}
+                key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
-                  active
-                    ? "bg-white text-[#4338CA] shadow-md"
-                    : "text-indigo-100 hover:bg-indigo-500 hover:text-white"
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-white text-[#4338CA]"
+                    : "text-white hover:bg-white/10"
                 }`}
               >
-                <Icon size={20} />
 
-                <span className="font-medium">
+                <span className="w-6 text-center text-lg">
+                  {item.icon}
+                </span>
+
+                <span>
                   {item.name}
                 </span>
+
               </Link>
             );
+
           })}
+
         </div>
+
       </nav>
 
-      {/* Bottom */}
-      <div className="border-t border-indigo-500 p-4">
 
-        <div className="space-y-2">
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
+      {/* Logout */}
+      <div className="shrink-0 border-t border-white/10 p-4">
 
-            const active = pathname === item.href;
+        <button
+          type="button"
+          onClick={() => console.log("Logout")}
+          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+        >
+          <span className="text-lg">
+            ⇥
+          </span>
 
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 ${
-                  active
-                    ? "bg-white text-[#4338CA]"
-                    : "text-indigo-100 hover:bg-indigo-500 hover:text-white"
-                }`}
-              >
-                <Icon size={20} />
-
-                <span className="font-medium">
-                  {item.name}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+          Logout
+        </button>
 
       </div>
 
