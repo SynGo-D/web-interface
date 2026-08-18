@@ -1,0 +1,24 @@
+{
+    "component":{
+        "key":"SynGo_review_analysis",
+        "name":"SynGo Web Interface",
+        "qualifier":"TRK",
+        "measures":[
+            {
+                "metric":"sqale_debt_ratio",
+                "value":"0.2",
+                "bestValue":false
+            },
+            {
+                "metric":"sqale_index",
+                "value":"207",
+                "bestValue":false
+            },
+            {
+                "metric":"sqale_rating",
+                "value":"1.0",
+                "bestValue":true
+            }
+        ]
+    }
+}
