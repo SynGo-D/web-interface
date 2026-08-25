@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { authorizeIntegration } from "@/lib/api";
+import { getUser } from "@/lib/session";
 
 interface Repository {
   name: string;
@@ -21,12 +23,17 @@ export default function RepositoryDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
+  const errorParam = searchParams.get("error");
 
   const [repository, setRepository] = useState<Repository | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authorizing, setAuthorizing] = useState(false);
 
   useEffect(() => {
-    if (!repoUrl) return;
+    if (!repoUrl) {
+      setLoading(false);
+      return;
+    }
 
     const fetchRepository = async () => {
       try {
@@ -51,6 +58,38 @@ export default function RepositoryDetailsPage() {
 
     fetchRepository();
   }, [repoUrl]);
+
+  const handleAuthorize = async () => {
+    if (!repoUrl) return;
+
+    const user = getUser();
+    if (!user) {
+      alert("Please sign in again before connecting a repository.");
+      return;
+    }
+
+    try {
+      setAuthorizing(true);
+      const { authorizationUrl } = await authorizeIntegration(repoUrl);
+      window.location.href = authorizationUrl;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to start authorization.");
+      setAuthorizing(false);
+    }
+  };
+
+  if (errorParam) {
+    return (
+      <div className="flex min-h-screen justify-center bg-[#4338CA]">
+        <main className="mx-auto max-w-5xl p-8">
+          <h1 className="text-3xl font-bold text-gray-200 mb-6">Repository Details</h1>
+          <div className="rounded-xl border bg-white p-10 shadow text-gray-600">
+            <p>{decodeURIComponent(errorParam)}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (loading) {
     return <p className="p-10">Loading repository...</p>;
@@ -97,13 +136,14 @@ export default function RepositoryDetailsPage() {
                 </div>
 
                 <button
-                    onClick={() => {window.location.href = "/api/auth/github"}}
+                    onClick={handleAuthorize}
+                    disabled={authorizing}
                     className="mt-8 rounded-lg bg-[#4338CA] px-6 py-3 font-semibold text-white transition hover:opacity-90"
                 >
-                Authorize Repository
+                {authorizing ? "Redirecting..." : "Authorize Repository"}
                 </button>
             </div>
         </main>
-    </div>  
+    </div>
   );
 }

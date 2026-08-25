@@ -2,11 +2,35 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { login } from "@/lib/api";
+import { saveSession } from "@/lib/session";
 
 export default function LoginForm() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    // Registers/looks up the matching backend user so downstream calls
+    // (repository connect, integrations list) have a real userId to work
+    // with, then routes to the role's landing page.
+    const signInAs = async (
+        matchedEmail: string,
+        fullName: string,
+        redirectTo: string
+    ) => {
+        try {
+            setSubmitting(true);
+            const { token, user } = await login(matchedEmail, fullName);
+            saveSession(token, { userId: user.id, email: user.email, fullName: user.fullName });
+            router.push(redirectTo);
+        } catch (error) {
+            console.error(error);
+            alert("Unable to sign in right now. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
@@ -16,7 +40,7 @@ export default function LoginForm() {
     email === "admin@codereview.com" &&
     password === "admin123"
     ) {
-        router.push("/admin/dashboard");
+        signInAs(email, "Admin User", "/admin/dashboard");
         return;
     }
 
@@ -25,7 +49,7 @@ export default function LoginForm() {
         email === "developer@codereview.com" &&
         password === "developer123"
     ) {
-        router.push("/repository");
+        signInAs(email, "Developer User", "/repository");
         return;
     }
 
@@ -34,7 +58,7 @@ export default function LoginForm() {
         email === "manager@codereview.com" &&
         password === "manager123"
     ) {
-        router.push("/manager/dashboard");
+        signInAs(email, "Manager User", "/manager/dashboard");
         return;
     }
 
@@ -95,6 +119,7 @@ export default function LoginForm() {
         {/* Submit Button */}
         <button
             type="submit"
+            disabled={submitting}
             className="w-full rounded-lg bg-[#4338CA] py-3 font-semibold text-white transition hover:opacity-90"
         >
             Sign In

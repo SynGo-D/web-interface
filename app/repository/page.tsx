@@ -1,6 +1,31 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import RepositoryForm from "@/components/forms/RepositoryForm";
+import { listIntegrations, type Integration } from "@/lib/api";
+import { getUser } from "@/lib/session";
 
 export default function RepositoryPage() {
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
+
+  useEffect(() => {
+    const user = getUser();
+    if (!user) {
+      setLoadingIntegrations(false);
+      return;
+    }
+
+    listIntegrations()
+      .then(setIntegrations)
+      .catch((error) => console.error(error))
+      .finally(() => setLoadingIntegrations(false));
+  }, []);
+
+  const connectedIntegrations = integrations.filter(
+    (integration) => integration.status !== "REVOKED"
+  );
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#4338CA]">
       <div className="mx-auto max-w-5xl ">
@@ -39,9 +64,39 @@ export default function RepositoryPage() {
             Connected Repositories
           </h2>
 
-          <div className="mt-4 rounded-lg bg-gray-50 p-5 text-center text-gray-500">
-            No repositories connected yet.
-          </div>
+          {loadingIntegrations ? (
+            <div className="mt-4 rounded-lg bg-gray-50 p-5 text-center text-gray-500">
+              Loading...
+            </div>
+          ) : connectedIntegrations.length === 0 ? (
+            <div className="mt-4 rounded-lg bg-gray-50 p-5 text-center text-gray-500">
+              No repositories connected yet.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {connectedIntegrations.map((integration) => (
+                <div
+                  key={integration.id}
+                  className="rounded-lg bg-gray-50 p-5 text-gray-700"
+                >
+                  {integration.repositoryOwner}/{integration.repositoryName}
+                  {" — "}
+                  <span className="text-sm text-gray-500">{integration.status}</span>
+                  {integration.status === "ACTIVE" && (
+                    <span
+                      className={`ml-2 text-sm ${
+                        integration.webhookRegistered ? "text-green-600" : "text-amber-600"
+                      }`}
+                    >
+                      {integration.webhookRegistered
+                        ? "• Webhook active"
+                        : "• Webhook not registered"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
