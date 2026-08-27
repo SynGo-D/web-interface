@@ -11,41 +11,74 @@ import {
   Cell,
 } from "recharts";
 
-import { qualityData } from "./DashboardData";
+type CodeQualityChartProps = {
+  data: {
+    summary: {
+      bugs: number;
+      vulnerabilities: number;
+      codeSmells: number;
+      coverage: number;
+    };
 
-export default function CodeQualityChart() {
+    complexity: {
+      complexity: number;
+      cognitiveComplexity: number;
+    };
 
-  const average =
-    qualityData.reduce((sum, item) => sum + item.score, 0) /
-    qualityData.length;
+    duplication: {
+      percentage: number;
+    };
+  };
+};
+
+export default function CodeQualityChart({
+  data,
+}: CodeQualityChartProps) {
+
+  const qualityData = [
+  {
+    metric: "Bugs",
+    value: data.summary.bugs,
+  },
+  {
+    metric: "Vulnerabilities",
+    value: data.summary.vulnerabilities,
+  },
+  {
+    metric: "Code Smells",
+    value: data.summary.codeSmells,
+  },
+  {
+    metric: "Coverage",
+    value: data.summary.coverage,
+  },
+  {
+    metric: "Duplication",
+    value: data.duplication.percentage,
+  },
+  {
+    metric: "Complexity",
+    value: data.complexity.complexity,
+  },
+  {
+    metric: "Cognitive",
+    value: data.complexity.cognitiveComplexity,
+  },
+];
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
 
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6">
 
-        <div>
-          <h2 className="text-lg font-bold text-gray-800">
-            Code Quality
-          </h2>
+        <h2 className="text-lg font-bold text-gray-800">
+          Code Quality
+        </h2>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Quality score across your projects
-          </p>
-        </div>
-
-        <div className="rounded-xl bg-indigo-50 px-4 py-2 text-right">
-
-          <p className="text-xs text-gray-500">
-            Average
-          </p>
-
-          <p className="text-xl font-bold text-[#4338CA]">
-            {average.toFixed(0)}%
-          </p>
-
-        </div>
+        <p className="mt-1 text-sm text-gray-500">
+          Code quality metrics from SonarQube
+        </p>
 
       </div>
 
@@ -69,51 +102,39 @@ export default function CodeQualityChart() {
           />
 
           <XAxis
-            dataKey="project"
+            dataKey="metric"
             axisLine={false}
             tickLine={false}
             tick={{
               fill: "#6B7280",
-              fontSize: 12,
+              fontSize: 11,
             }}
           />
 
           <YAxis
-            domain={[0, 100]}
             axisLine={false}
             tickLine={false}
-            tick={{
-              fill: "#6B7280",
-              fontSize: 12,
-            }}
           />
 
           <Tooltip
-            cursor={{ fill: "#F3F4F6" }}
             contentStyle={{
               borderRadius: "12px",
               border: "1px solid #E5E7EB",
               boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
             }}
-            formatter={(value) => [`${value}%`, "Quality"]}
+            formatter={(value) => [value, "Value"]}
           />
 
           <Bar
-            dataKey="score"
+            dataKey="value"
             radius={[8, 8, 0, 0]}
             barSize={35}
           >
 
-            {qualityData.map((entry, index) => (
+            {qualityData.map((entry) => (
               <Cell
-                key={`cell-${index}`}
-                fill={
-                  entry.score >= 95
-                    ? "#4338CA"
-                    : entry.score >= 90
-                    ? "#6366F1"
-                    : "#A5B4FC"
-                }
+                key={entry.metric}
+                fill="#4338CA"
               />
             ))}
 

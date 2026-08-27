@@ -1,7 +1,5 @@
 "use client";
 
-import { dashboardStats } from "./DashboardData";
-
 import {
     FiFolder,
     FiGithub,
@@ -11,20 +9,78 @@ import {
     FiAward,
 } from "react-icons/fi";
 
-const icons = [
-    FiFolder,
-    FiGithub,
-    FiGitPullRequest,
-    FiTrendingDown,
-    FiCpu,
-    FiAward,
-];
+type DashboardData = {
+    summary: {
+        bugs: number;
+        vulnerabilities: number;
+        codeSmells: number;
+        coverage: number;
+    };
+    technicalDebt: {
+        hours: number;
+        rating: string;
+        debtRatio: number;
+    };
+    complexity: {
+        complexity: number;
+        cognitiveComplexity: number;
+    };
+    duplication: {
+        percentage: number;
+    };
+};
 
-export default function DashboardCards() {
+type DashboardCardsProps = {
+    data: DashboardData;
+};
+
+export default function DashboardCards({
+    data,
+}: DashboardCardsProps) {
+
+    const cards = [
+        {
+            title: "Bugs",
+            value: data.summary.bugs,
+            change: "SonarQube detected bugs",
+            icon: FiFolder,
+        },
+        {
+            title: "Vulnerabilities",
+            value: data.summary.vulnerabilities,
+            change: "Security vulnerabilities",
+            icon: FiGithub,
+        },
+        {
+            title: "Code Smells",
+            value: data.summary.codeSmells,
+            change: "Maintainability issues",
+            icon: FiGitPullRequest,
+        },
+        {
+            title: "Coverage",
+            value: `${data.summary.coverage}%`,
+            change: "Code coverage",
+            icon: FiTrendingDown,
+        },
+        {
+            title: "Technical Debt",
+            value: `${data.technicalDebt.hours}h`,
+            change: `Rating: ${data.technicalDebt.rating}`,
+            icon: FiCpu,
+        },
+        {
+            title: "Complexity",
+            value: data.complexity.complexity,
+            change: `Cognitive: ${data.complexity.cognitiveComplexity}`,
+            icon: FiAward,
+        },
+    ];
+
     return (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {dashboardStats.map((item, index) => {
-                const Icon = icons[index];
+            {cards.map((item) => {
+                const Icon = item.icon;
 
                 return (
                     <div

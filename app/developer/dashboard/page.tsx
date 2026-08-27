@@ -7,7 +7,11 @@ import ContributorsTable from "@/components/dashboard/ContributorsTable";
 import RecentPullRequests from "@/components/dashboard/RecentPullRequests";
 import RecentCodeReviews from "@/components/dashboard/RecentCodeReviews";
 
-export default function DashboardPage() {
+import { getSonarDashboard } from "@/lib/sonarApi";
+
+export default async function DashboardPage() {
+  const sonarData = await getSonarDashboard();
+
   return (
     <div className="min-h-screen bg-gray-100">
 
@@ -34,30 +38,26 @@ export default function DashboardPage() {
 
         </div>
 
-
         {/* Summary Cards */}
-        <DashboardCards />
-
+        <DashboardCards data={sonarData} />
 
         {/* Technical Debt + Issue Distribution */}
         <div className="mt-7 grid gap-6 lg:grid-cols-2">
 
-          <TechnicalDebtChart />
+          <TechnicalDebtChart data={sonarData} />
 
-          <IssueDistributionChart />
+          <IssueDistributionChart data={sonarData} />
 
         </div>
-
 
         {/* Code Quality + Top Contributors */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
 
-          <CodeQualityChart />
+          <CodeQualityChart data={sonarData} />
 
           <ContributorsTable />
 
         </div>
-
 
         {/* Recent Activity */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">

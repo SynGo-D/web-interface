@@ -1,23 +1,38 @@
 "use client";
 
 import {
-  LineChart,
-  Line,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
 } from "recharts";
 
-import { debtData } from "./DashboardData";
+type TechnicalDebtChartProps = {
+  data: {
+    technicalDebt: {
+      minutes: number;
+      hours: number;
+      debtRatio: number;
+      rating: string;
+    };
+  };
+};
 
-export default function TechnicalDebtChart() {
-  const currentDebt = debtData[debtData.length - 1].debt;
-  const previousDebt = debtData[debtData.length - 2].debt;
-  const reduction = previousDebt - currentDebt;
+export default function TechnicalDebtChart({
+  data,
+}: TechnicalDebtChartProps) {
+
+  const debtHours = data.technicalDebt.hours;
+
+  const chartData = [
+    {
+      name: "Current",
+      debt: debtHours,
+    },
+  ];
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -31,39 +46,42 @@ export default function TechnicalDebtChart() {
           </h2>
 
           <p className="mt-1 text-sm text-gray-500">
-            Technical debt trend over the last 7 months
+            Current technical debt from SonarQube
           </p>
         </div>
 
         <div className="rounded-xl bg-indigo-50 px-4 py-2 text-right">
+
           <p className="text-xs text-gray-500">
             Current
           </p>
 
           <p className="text-xl font-bold text-[#4338CA]">
-            {currentDebt} hrs
+            {debtHours} hrs
           </p>
+
         </div>
 
       </div>
 
-      {/* Improvement indicator */}
+      {/* Rating */}
       <div className="mb-5 flex items-center gap-2">
 
         <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-          ↓ {reduction} hrs
+          Rating {data.technicalDebt.rating}
         </span>
 
         <span className="text-sm text-gray-500">
-          Improved from last month
+          Debt ratio: {data.technicalDebt.debtRatio}%
         </span>
 
       </div>
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={300}>
+
         <AreaChart
-          data={debtData}
+          data={chartData}
           margin={{
             top: 10,
             right: 10,
@@ -101,31 +119,21 @@ export default function TechnicalDebtChart() {
           />
 
           <XAxis
-            dataKey="month"
+            dataKey="name"
             axisLine={false}
             tickLine={false}
-            tick={{
-              fill: "#6B7280",
-              fontSize: 12,
-            }}
           />
 
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{
-              fill: "#6B7280",
-              fontSize: 12,
-            }}
           />
 
           <Tooltip
-            contentStyle={{
-              borderRadius: "12px",
-              border: "1px solid #E5E7EB",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-            }}
-            formatter={(value) => [`${value} hrs`, "Technical Debt"]}
+            formatter={(value) => [
+              `${value} hrs`,
+              "Technical Debt",
+            ]}
           />
 
           <Area
@@ -134,18 +142,10 @@ export default function TechnicalDebtChart() {
             stroke="#4338CA"
             strokeWidth={3}
             fill="url(#debtGradient)"
-            dot={{
-              r: 4,
-              fill: "#4338CA",
-              strokeWidth: 2,
-              stroke: "#FFFFFF",
-            }}
-            activeDot={{
-              r: 7,
-            }}
           />
 
         </AreaChart>
+
       </ResponsiveContainer>
 
     </div>
