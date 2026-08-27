@@ -44,16 +44,16 @@ export default async function DashboardPage() {
         {/* Technical Debt + Issue Distribution */}
         <div className="mt-7 grid gap-6 lg:grid-cols-2">
 
-          {/* <TechnicalDebtChart data={sonarData} /> */}
+          <TechnicalDebtChart data={sonarData} />
 
-          {/* <IssueDistributionChart data={sonarData} /> */}
+          <IssueDistributionChart data={sonarData} />
 
         </div>
 
         {/* Code Quality + Top Contributors */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
 
-          {/* <CodeQualityChart data={sonarData} /> */}
+          <CodeQualityChart data={sonarData} />
 
           <ContributorsTable />
 

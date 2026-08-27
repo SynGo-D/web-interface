@@ -8,21 +8,49 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import { issueData } from "./DashboardData";
+type IssueDistributionChartProps = {
+  data: {
+    issues: {
+      total: number;
+      items: {
+        severity: string;
+      }[];
+    };
+  };
+};
 
 const COLORS = [
   "#4338CA",
   "#6366F1",
   "#A78BFA",
   "#C4B5FD",
+  "#818CF8",
 ];
 
-export default function IssueDistributionChart() {
+export default function IssueDistributionChart({
+  data,
+}: IssueDistributionChartProps) {
+  const issues = data?.issues?.items ?? [];
 
-  const totalIssues = issueData.reduce(
-    (sum, item) => sum + item.value,
-    0
+  // Count issues according to their SonarQube severity
+  const severityCounts: Record<string, number> = {};
+
+  issues.forEach((issue) => {
+    const severity = issue.severity;
+
+    severityCounts[severity] =
+      (severityCounts[severity] || 0) + 1;
+  });
+
+  // Convert the counts into chart data
+  const issueData = Object.entries(severityCounts).map(
+    ([name, value]) => ({
+      name,
+      value,
+    })
   );
+
+  const totalIssues = data?.issues?.total ?? 0;
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -35,7 +63,7 @@ export default function IssueDistributionChart() {
         </h2>
 
         <p className="mt-1 text-sm text-gray-500">
-          Issues identified from recent code analysis
+          Issues identified from SonarQube analysis
         </p>
 
       </div>
@@ -63,7 +91,7 @@ export default function IssueDistributionChart() {
 
                 {issueData.map((entry, index) => (
                   <Cell
-                    key={`cell-${index}`}
+                    key={entry.name}
                     fill={COLORS[index % COLORS.length]}
                   />
                 ))}
@@ -74,7 +102,8 @@ export default function IssueDistributionChart() {
                 contentStyle={{
                   borderRadius: "12px",
                   border: "1px solid #E5E7EB",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+                  boxShadow:
+                    "0 10px 25px rgba(0,0,0,0.08)",
                 }}
               />
 
@@ -106,10 +135,10 @@ export default function IssueDistributionChart() {
 
           {issueData.map((item, index) => {
 
-            const percentage = (
-              (item.value / totalIssues) *
-              100
-            ).toFixed(0);
+            const percentage =
+              totalIssues > 0
+                ? ((item.value / totalIssues) * 100).toFixed(0)
+                : "0";
 
             return (
               <div
@@ -147,7 +176,6 @@ export default function IssueDistributionChart() {
 
               </div>
             );
-
           })}
 
         </div>
