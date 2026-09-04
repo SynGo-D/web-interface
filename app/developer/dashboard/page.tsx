@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
 import FindingsList from "@/components/dashboard/FindingsList";
+import OverviewCards from "@/components/analysis/OverviewCards";
 import { getUser } from "@/lib/session";
 import {
   listIntegrations,
@@ -88,18 +90,39 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-6 space-y-6">
-                {repositories.map(({ integration, results }) => (
-                  <div
-                    key={integration.id}
-                    className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-                  >
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {integration.repositoryOwner}/{integration.repositoryName}
-                    </h2>
-                    <hr className="my-4 border-gray-100" />
-                    <FindingsList results={results} />
-                  </div>
-                ))}
+                {repositories.map(({ integration, results }) => {
+                  const latest = results[0];
+
+                  return (
+                    <div
+                      key={integration.id}
+                      className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                          {integration.repositoryOwner}/{integration.repositoryName}
+                        </h2>
+                        {latest && (
+                          <Link
+                            href={`/developer/analysis/${integration.repositoryOwner}/${integration.repositoryName}/${latest.pull_request_number}`}
+                            className="text-sm font-medium text-[#4338CA] hover:underline"
+                          >
+                            View full analysis →
+                          </Link>
+                        )}
+                      </div>
+
+                      {latest && latest.status === "completed" && (
+                        <div className="mt-4">
+                          <OverviewCards metrics={latest.metrics} />
+                        </div>
+                      )}
+
+                      <hr className="my-4 border-gray-100" />
+                      <FindingsList results={results} />
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

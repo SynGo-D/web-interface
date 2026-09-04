@@ -1,0 +1,20 @@
+services:
+  # Optional. web-interface is a standalone Next.js app that talks to
+  # main-backend over HTTP only — nothing else in the platform (main-backend,
+  # analysis-engine, integration-service, webhook-listener, their databases,
+  # or RabbitMQ) depends on this container, or on this repo, existing. Running
+  # `docker compose up` here, or deleting this file entirely, has no effect
+  # on any other service.
+  web-interface:
+    build:
+      context: .
+      args:
+        # Baked into the client bundle at build time (Next.js inlines
+        # NEXT_PUBLIC_* vars) — override for a main-backend that isn't on
+        # the same host, e.g. http://host.docker.internal:5000 if
+        # main-backend runs un-containerized on the host machine.
+        NEXT_PUBLIC_MAIN_BACKEND_URL: ${NEXT_PUBLIC_MAIN_BACKEND_URL:-http://localhost:5000}
+    container_name: web-interface
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
