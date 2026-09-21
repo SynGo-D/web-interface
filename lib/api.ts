@@ -205,7 +205,11 @@ export interface AgentFinding {
   evidence: ReviewEvidence[];
   suggested_fix: string | null;
   verification: "unverified" | "verified";
+  // Developers' verdicts on this issue, with the signed-in user's own.
+  feedback?: { useful: number; not_useful: number; wrong: number; mine: FeedbackVerdict | null } | null;
 }
+
+export type FeedbackVerdict = "useful" | "not_useful" | "wrong";
 
 export interface TriagedLinterFinding {
   fingerprint: string;
@@ -408,4 +412,41 @@ export function deleteRule(owner: string, repo: string, ruleId: string): Promise
 
 export function suggestRules(owner: string, repo: string, branch = "main"): Promise<{ status: string }> {
   return request(`${rulesPath(owner, repo)}/suggest`, { method: "POST", body: JSON.stringify({ branch }) });
+}
+
+// ---------------------------------------------------------------------
+// AI review feedback and usage
+// ---------------------------------------------------------------------
+
+export function giveFeedback(
+  repository: string,
+  pullRequestNumber: number,
+  fingerprint: string,
+  verdict: FeedbackVerdict
+): Promise<void> {
+  const [owner, repo] = repository.split("/");
+  return request(
+    `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/analysis/pull-requests/` +
+      `${pullRequestNumber}/review/findings/${encodeURIComponent(fingerprint)}/feedback`,
+    { method: "PUT", body: JSON.stringify({ verdict }) }
+  );
+}
+
+export interface ReviewUsage {
+  repository: string;
+  days: number;
+  reviews: number;
+  completed: number;
+  failed: number;
+  skipped: number;
+  cost_usd: number;
+  cost_per_review_usd: number | null;
+  issues_reported: number;
+  feedback: { useful: number; not_useful: number; wrong: number };
+  wrong_rate: number | null;
+  useful_rate: number | null;
+}
+
+export function getReviewUsage(owner: string, repo: string, days = 30): Promise<ReviewUsage> {
+  return request(`/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/review-usage?days=${days}`);
 }

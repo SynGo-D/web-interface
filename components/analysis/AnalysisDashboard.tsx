@@ -1,4 +1,4 @@
-import type { AnalysisResult } from "@/lib/api";
+import { giveFeedback, type AnalysisResult } from "@/lib/api";
 import AnalysisHeader from "./AnalysisHeader";
 import OverviewCards from "./OverviewCards";
 import ComplexitySection from "./ComplexitySection";
@@ -35,7 +35,14 @@ export default function AnalysisDashboard({ result }: { result: AnalysisResult }
   return (
     <div className="space-y-6">
       <AnalysisHeader result={result} />
-      {result.review && <AiReviewSection review={result.review} />}
+      {result.review && (
+        <AiReviewSection
+          review={result.review}
+          onFeedback={(fingerprint, verdict) =>
+            giveFeedback(result.repository, result.pull_request_number, fingerprint, verdict)
+          }
+        />
+      )}
       {result.changes && <PullRequestChangesSection changes={result.changes} />}
       <OverviewCards metrics={result.metrics} />
       <ComplexitySection

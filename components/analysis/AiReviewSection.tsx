@@ -1,4 +1,5 @@
-import type { AgentFinding, AgentReview, RuleCheck } from "@/lib/api";
+import type { AgentFinding, AgentReview, FeedbackVerdict, RuleCheck } from "@/lib/api";
+import FeedbackButtons from "./FeedbackButtons";
 
 // Everything written by the model is rendered as plain React text (never
 // dangerouslySetInnerHTML): the PR under review could have steered the
@@ -46,7 +47,14 @@ function Panel({ children }: { children: React.ReactNode }) {
  * which linter findings matter for this change. Every issue shows the
  * evidence the engine checked against the code.
  */
-export default function AiReviewSection({ review }: { review: AgentReview }) {
+export default function AiReviewSection({
+  review,
+  onFeedback,
+}: {
+  review: AgentReview;
+  // Omitted where rating isn't possible (e.g. in tests or previews).
+  onFeedback?: (fingerprint: string, verdict: FeedbackVerdict) => Promise<void>;
+}) {
   if (review.status === "running" || review.status === "pending") {
     return (
       <Panel>
@@ -129,6 +137,12 @@ export default function AiReviewSection({ review }: { review: AgentReview }) {
                   <pre className="mt-3 overflow-x-auto rounded bg-gray-50 p-3 text-xs text-gray-700">
                     {finding.suggested_fix}
                   </pre>
+                )}
+                {onFeedback && (
+                  <FeedbackButtons
+                    feedback={finding.feedback}
+                    onFeedback={(verdict) => onFeedback(finding.fingerprint, verdict)}
+                  />
                 )}
               </li>
             ))}

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
 import RulesManager from "@/components/rules/RulesManager";
+import ReviewUsagePanel from "@/components/rules/ReviewUsagePanel";
 import { EmptyBanner } from "@/components/analysis/AnalysisStateBanner";
 import { getUser } from "@/lib/session";
 
@@ -28,7 +29,12 @@ export default function RulesPage() {
           </Link>
           <div className="mt-4">
             {signedIn === false && <EmptyBanner message="Sign in to manage this repository's rules." />}
-            {signedIn && <RulesManager owner={owner} repo={repo} />}
+            {signedIn && (
+              <div className="space-y-6">
+                <ReviewUsagePanel owner={owner} repo={repo} />
+                <RulesManager owner={owner} repo={repo} />
+              </div>
+            )}
           </div>
         </div>
       </main>
