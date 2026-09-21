@@ -9,6 +9,7 @@ import RuleStatisticsTable from "./RuleStatisticsTable";
 import FileStatisticsTable from "./FileStatisticsTable";
 import FindingsExplorer from "./FindingsExplorer";
 import PullRequestChangesSection from "./PullRequestChangesSection";
+import AiReviewSection from "./AiReviewSection";
 
 /**
  * Composes one AnalysisResult into the full dashboard. A "failed" result
@@ -34,6 +35,7 @@ export default function AnalysisDashboard({ result }: { result: AnalysisResult }
   return (
     <div className="space-y-6">
       <AnalysisHeader result={result} />
+      {result.review && <AiReviewSection review={result.review} />}
       {result.changes && <PullRequestChangesSection changes={result.changes} />}
       <OverviewCards metrics={result.metrics} />
       <ComplexitySection
