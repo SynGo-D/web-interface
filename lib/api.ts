@@ -125,6 +125,59 @@ export interface Finding {
   rule_id: string;
   message: string;
   tool: string;
+  /*
+  Tool-specific extras. analysis-engine also sets `on_changed_line` here
+  (true/false) whenever it could work out what the pull request changed.
+  */
+  metadata?: Record<string, unknown>;
+}
+
+/*
+Mirrors analysis-engine's domain/change_set.py: what the pull request
+itself changed, relative to the branch it targets.
+*/
+export interface ChangedFile {
+  path: string;
+  old_path: string | null;
+  status: "added" | "modified" | "deleted" | "renamed";
+  is_binary: boolean;
+  lines_added: number;
+  lines_removed: number;
+  added_lines: number[];
+  deletion_points: number[];
+}
+
+export interface ChangedSymbol {
+  symbol_id: string;
+  name: string;
+  qualified_name: string;
+  kind: string;
+  file_path: string;
+  start_line: number;
+  end_line: number;
+  callers_count: number;
+}
+
+export interface PullRequestChanges {
+  status: "available" | "unavailable";
+  unavailable_reason: "no_target_branch" | "no_merge_base" | "too_large" | "error" | null;
+  change_set: {
+    base_sha: string;
+    head_sha: string;
+    target_branch: string;
+    files: ChangedFile[];
+    excluded_files: string[];
+  } | null;
+  changed_symbols: ChangedSymbol[];
+  files_changed: number;
+  lines_added: number;
+  lines_removed: number;
+  findings_on_changed_lines: number;
+}
+
+/** True when analysis-engine marked this finding as sitting on a line the PR changed. */
+export function isOnChangedLine(finding: Finding): boolean {
+  return finding.metadata?.on_changed_line === true;
 }
 
 /*
@@ -199,6 +252,8 @@ export interface AnalysisResult {
   metrics: AnalysisMetrics;
   rule_statistics: RuleStatistic[];
   file_statistics: FileStatistic[];
+  /* Absent on results stored before analysis-engine tracked PR changes. */
+  changes?: PullRequestChanges | null;
   started_at: string;
   completed_at: string | null;
   error_message: string | null;

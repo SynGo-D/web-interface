@@ -8,6 +8,7 @@ import UnusedCodeSection from "./UnusedCodeSection";
 import RuleStatisticsTable from "./RuleStatisticsTable";
 import FileStatisticsTable from "./FileStatisticsTable";
 import FindingsExplorer from "./FindingsExplorer";
+import PullRequestChangesSection from "./PullRequestChangesSection";
 
 /**
  * Composes one AnalysisResult into the full dashboard. A "failed" result
@@ -33,6 +34,7 @@ export default function AnalysisDashboard({ result }: { result: AnalysisResult }
   return (
     <div className="space-y-6">
       <AnalysisHeader result={result} />
+      {result.changes && <PullRequestChangesSection changes={result.changes} />}
       <OverviewCards metrics={result.metrics} />
       <ComplexitySection
         complexity={result.metrics.complexity}
@@ -45,7 +47,10 @@ export default function AnalysisDashboard({ result }: { result: AnalysisResult }
       </div>
       <RuleStatisticsTable ruleStatistics={result.rule_statistics} />
       <FileStatisticsTable fileStatistics={result.file_statistics} />
-      <FindingsExplorer findings={result.findings} />
+      <FindingsExplorer
+        findings={result.findings}
+        prScopeAvailable={result.changes?.status === "available"}
+      />
     </div>
   );
 }

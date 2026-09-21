@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import type { Finding } from "@/lib/api";
+import { isOnChangedLine, type Finding } from "@/lib/api";
 import FindingFilters, { type FindingFilterState } from "./FindingFilters";
 import FindingDetails from "./FindingDetails";
 
@@ -20,8 +20,19 @@ const severityStyles: Record<Finding["severity"], string> = {
  * doesn't expose a separate paginated findings endpoint, so "don't load
  * thousands of findings unnecessarily" is addressed by only ever
  * *rendering* one page's worth of rows, not by a second network request.
+ *
+ * When analysis-engine could work out what the pull request changed
+ * (`prScopeAvailable`), the list opens on "In this PR": the findings on
+ * lines the PR touched. The whole-repository list is one click away.
  */
-export default function FindingsExplorer({ findings }: { findings: Finding[] }) {
+export default function FindingsExplorer({
+  findings,
+  prScopeAvailable = false,
+}: {
+  findings: Finding[];
+  prScopeAvailable?: boolean;
+}) {
+  const [scope, setScope] = useState<"pr" | "all">(prScopeAvailable ? "pr" : "all");
   const [filters, setFilters] = useState<FindingFilterState>({
     severity: "all",
     ruleId: "all",
@@ -35,8 +46,11 @@ export default function FindingsExplorer({ findings }: { findings: Finding[] }) 
     [findings]
   );
 
+  const prCount = useMemo(() => findings.filter(isOnChangedLine).length, [findings]);
+
   const filtered = useMemo(() => {
     return findings.filter((finding) => {
+      if (scope === "pr" && !isOnChangedLine(finding)) return false;
       if (filters.severity !== "all" && finding.severity !== filters.severity) return false;
       if (filters.ruleId !== "all" && finding.rule_id !== filters.ruleId) return false;
       if (
@@ -46,7 +60,7 @@ export default function FindingsExplorer({ findings }: { findings: Finding[] }) 
         return false;
       return true;
     });
-  }, [findings, filters]);
+  }, [findings, filters, scope]);
 
   function handleFiltersChange(next: FindingFilterState) {
     setFilters(next);
@@ -65,12 +79,39 @@ export default function FindingsExplorer({ findings }: { findings: Finding[] }) 
         <p className="mt-3 text-gray-500">No findings in this analysis.</p>
       ) : (
         <>
+          {prScopeAvailable && (
+            <div className="mt-4 inline-flex rounded-lg border border-gray-300 p-1 text-sm" role="group" aria-label="Findings scope">
+              {([["pr", `In this PR (${prCount})`], ["all", `Whole repository (${findings.length})`]] as const).map(
+                ([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={scope === value}
+                    onClick={() => {
+                      setScope(value);
+                      setPage(1);
+                    }}
+                    className={`rounded-md px-3 py-1 ${
+                      scope === value ? "bg-[#4338CA] font-semibold text-white" : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+
           <div className="mt-4">
             <FindingFilters filters={filters} ruleOptions={ruleOptions} onChange={handleFiltersChange} />
           </div>
 
           {filtered.length === 0 ? (
-            <p className="mt-4 text-gray-500">No findings match the current filters.</p>
+            <p className="mt-4 text-gray-500">
+              {scope === "pr" && prCount === 0
+                ? "No findings on lines this pull request changed."
+                : "No findings match the current filters."}
+            </p>
           ) : (
             <>
               <div className="mt-4 overflow-x-auto">
