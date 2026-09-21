@@ -1,4 +1,4 @@
-import type { AgentFinding, AgentReview } from "@/lib/api";
+import type { AgentFinding, AgentReview, RuleCheck } from "@/lib/api";
 
 // Everything written by the model is rendered as plain React text (never
 // dangerouslySetInnerHTML): the PR under review could have steered the
@@ -14,6 +14,20 @@ const severityStyles: Record<AgentFinding["severity"], string> = {
   high: "text-red-600",
   medium: "text-amber-600",
   low: "text-gray-500",
+};
+
+const outcomeStyles: Record<RuleCheck["outcome"], { label: string; className: string }> = {
+  violated: { label: "Violated", className: "bg-red-100 text-red-700" },
+  satisfied: { label: "Satisfied", className: "bg-green-100 text-green-700" },
+  not_applicable: { label: "Not applicable", className: "bg-gray-100 text-gray-600" },
+  not_confirmed: { label: "Not confirmed", className: "bg-amber-100 text-amber-700" },
+  not_checked: { label: "Not checked", className: "bg-gray-100 text-gray-500" },
+};
+
+const categoryLabels: Record<AgentFinding["category"], string> = {
+  correctness: "correctness",
+  security: "security",
+  business_rule: "business rule",
 };
 
 const skipMessages: Record<NonNullable<AgentReview["skip_reason"]>, string> = {
@@ -93,7 +107,9 @@ export default function AiReviewSection({ review }: { review: AgentReview }) {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  {finding.category} · {Math.round(finding.confidence * 100)}% confidence ·{" "}
+                  {categoryLabels[finding.category]}
+                  {finding.rule_ids && finding.rule_ids.length > 0 ? ` (${finding.rule_ids.join(", ")})` : ""} ·{" "}
+                  {Math.round(finding.confidence * 100)}% confidence ·{" "}
                   {finding.verification === "verified" ? "verified" : "evidence checked"}
                 </p>
                 <p className="mt-2 whitespace-pre-line text-gray-700">{finding.explanation}</p>
@@ -119,6 +135,30 @@ export default function AiReviewSection({ review }: { review: AgentReview }) {
           </ul>
         )}
       </div>
+
+      {review.rule_checks && review.rule_checks.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-400">Business rules checked</h3>
+          <ul className="mt-2 space-y-2">
+            {review.rule_checks.map((check) => (
+              <li key={check.rule_id} className="flex flex-wrap items-baseline gap-2 text-sm">
+                <span className={`rounded px-2 py-0.5 text-xs font-semibold ${outcomeStyles[check.outcome].className}`}>
+                  {outcomeStyles[check.outcome].label}
+                </span>
+                <span className="font-mono text-xs text-gray-600">{check.rule_id}</span>
+                <span className="text-gray-700">{check.rule}</span>
+                {check.note && <span className="w-full pl-1 text-xs text-gray-500">{check.note}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {review.rule_errors && review.rule_errors.length > 0 && (
+        <p className="mt-3 text-xs text-amber-700">
+          Some rules in .codepulse/rules.yml couldn&apos;t be read: {review.rule_errors.join("; ")}
+        </p>
+      )}
 
       {review.linter_triage.length > 0 && (
         <div className="mt-6">

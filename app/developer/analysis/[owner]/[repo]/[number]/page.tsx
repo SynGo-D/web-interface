@@ -55,12 +55,20 @@ export default function AnalysisDetailPage() {
 
       <main className="flex-1 overflow-y-auto bg-gray-50 p-8">
         <div className="mx-auto max-w-5xl">
-          <Link
-            href="/developer/dashboard"
-            className="text-sm font-medium text-[#4338CA] hover:underline"
-          >
-            ← Back to dashboard
-          </Link>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href="/developer/dashboard"
+              className="text-sm font-medium text-[#4338CA] hover:underline"
+            >
+              ← Back to dashboard
+            </Link>
+            <Link
+              href={`/developer/rules/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`}
+              className="text-sm font-medium text-[#4338CA] hover:underline"
+            >
+              Business rules →
+            </Link>
+          </div>
 
           <div className="mt-4">
             {state.status === "loading" && <LoadingBanner message="Loading analysis..." />}

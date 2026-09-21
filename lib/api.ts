@@ -26,6 +26,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // main-backend returns bare JSON (its own house style), not an
   // {success, data} envelope — unwrapping integration-service's own
   // envelope shape is main-backend's job, not this client's.
+  if (response.status === 204) {
+    return undefined as T; // e.g. a delete: no body to parse
+  }
   const body = await response.json();
 
   if (!response.ok) {
@@ -181,7 +184,7 @@ request. Every text field here was written by a model — render it as
 plain text only, never as HTML.
 */
 export interface ReviewEvidence {
-  type: "code_location" | "linter_finding" | "call_path" | "test";
+  type: "code_location" | "linter_finding" | "business_rule" | "call_path" | "test";
   ref: string;
   quote: string | null;
   verified: boolean;
@@ -191,9 +194,10 @@ export interface AgentFinding {
   finding_id: string;
   fingerprint: string;
   title: string;
-  category: "correctness" | "security";
+  category: "correctness" | "security" | "business_rule";
   severity: "high" | "medium" | "low";
   confidence: number;
+  rule_ids?: string[]; // absent on reviews stored before business rules existed
   file_path: string;
   line_start: number;
   line_end: number;
@@ -214,6 +218,14 @@ export interface TriagedLinterFinding {
   reason: string;
 }
 
+export interface RuleCheck {
+  rule_id: string;
+  rule: string;
+  severity: "high" | "medium" | "low";
+  outcome: "violated" | "satisfied" | "not_applicable" | "not_confirmed" | "not_checked";
+  note: string | null;
+}
+
 export interface AgentReview {
   review_id: string;
   status: "pending" | "running" | "completed" | "failed" | "skipped";
@@ -223,7 +235,9 @@ export interface AgentReview {
   risk_level: "low" | "medium" | "high" | null;
   findings: AgentFinding[];
   linter_triage: TriagedLinterFinding[];
-  dropped: { title: string; reason: string }[];
+  dropped: { title: string; reason: string; stage?: "evidence" | "verifier" }[];
+  rule_checks?: RuleCheck[];
+  rule_errors?: string[];
   stats: {
     model: string;
     rounds: number;
@@ -345,4 +359,53 @@ export function getPullRequestAnalysis(
   return request<AnalysisResult>(
     `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/analysis/pull-requests/${pullRequestNumber}`
   );
+}
+
+// ---------------------------------------------------------------------
+// Business rules (analysis-engine's domain/business_rule.py)
+// ---------------------------------------------------------------------
+
+export interface BusinessRule {
+  rule_id: string;
+  rule: string;
+  applies_to: string[];
+  severity: "high" | "medium" | "low";
+  rationale: string | null;
+  source: "repository_file" | "dashboard" | "suggested";
+  status: "active" | "suggested" | "rejected";
+  evidence: string | null;
+}
+
+export type NewBusinessRule = Pick<BusinessRule, "rule_id" | "rule" | "applies_to" | "severity"> & {
+  rationale?: string | null;
+};
+
+function rulesPath(owner: string, repo: string, ruleId?: string): string {
+  const base = `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/rules`;
+  return ruleId ? `${base}/${encodeURIComponent(ruleId)}` : base;
+}
+
+export function getRules(owner: string, repo: string): Promise<{ rules: BusinessRule[]; mining: boolean }> {
+  return request(rulesPath(owner, repo));
+}
+
+export function addRule(owner: string, repo: string, rule: NewBusinessRule): Promise<BusinessRule> {
+  return request(rulesPath(owner, repo), { method: "POST", body: JSON.stringify(rule) });
+}
+
+export function updateRule(
+  owner: string,
+  repo: string,
+  ruleId: string,
+  change: Partial<Pick<BusinessRule, "rule" | "applies_to" | "severity" | "rationale" | "status">>
+): Promise<BusinessRule> {
+  return request(rulesPath(owner, repo, ruleId), { method: "PATCH", body: JSON.stringify(change) });
+}
+
+export function deleteRule(owner: string, repo: string, ruleId: string): Promise<void> {
+  return request(rulesPath(owner, repo, ruleId), { method: "DELETE" });
+}
+
+export function suggestRules(owner: string, repo: string, branch = "main"): Promise<{ status: string }> {
+  return request(`${rulesPath(owner, repo)}/suggest`, { method: "POST", body: JSON.stringify({ branch }) });
 }

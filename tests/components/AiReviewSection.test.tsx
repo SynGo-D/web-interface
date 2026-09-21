@@ -67,3 +67,23 @@ describe("AiReviewSection", () => {
     expect(screen.getByText(new RegExp(text))).toBeInTheDocument();
   });
 });
+
+describe("AiReviewSection — business rules", () => {
+  it("shows each rule's outcome and labels rule violations with the rule", () => {
+    const review: AgentReview = {
+      ...completed,
+      findings: [{ ...completed.findings[0], category: "business_rule", rule_ids: ["PII-LOGGING"] }],
+      rule_checks: [
+        { rule_id: "PII-LOGGING", rule: "Never log customer emails.", severity: "high", outcome: "violated", note: "logs order.customer_email" },
+        { rule_id: "REFUND-APPROVAL", rule: "Refunds over $500 need approval.", severity: "high", outcome: "not_confirmed", note: null },
+      ],
+      rule_errors: ["rule #3 (bad): id: String should match pattern"],
+    };
+    render(<AiReviewSection review={review} />);
+
+    expect(screen.getByText("Violated")).toBeInTheDocument();
+    expect(screen.getByText("Not confirmed")).toBeInTheDocument();
+    expect(screen.getByText(/business rule \(PII-LOGGING\)/)).toBeInTheDocument();
+    expect(screen.getByText(/couldn.t be read/)).toBeInTheDocument();
+  });
+});
