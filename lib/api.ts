@@ -624,3 +624,45 @@ export function assignRepositoryToProject(
     body: JSON.stringify({ projectId }),
   });
 }
+
+// ---------------------------------------------------------------------
+// Contributors (analysis-engine's api/contributors.py)
+// ---------------------------------------------------------------------
+
+/**
+ * Technical debt introduced by one person.
+ *
+ * `status` is "pending" for everyone until the debt calculation service
+ * exists. The field is carried now so that service becomes a backend
+ * change alone — the page already knows where to put the number.
+ */
+export interface ContributorDebt {
+  score: number | null;
+  status: "pending" | "available";
+  introduced_at: string | null;
+}
+
+export interface Contributor {
+  username: string;
+  provider_user_id: string | null;
+  pull_requests: number;
+  analyses: number;
+  files_changed: number;
+  lines_added: number;
+  lines_removed: number;
+  issues: number;
+  errors: number;
+  warnings: number;
+  review_findings: { high: number; medium: number; low: number };
+  debt: ContributorDebt;
+  last_analysis_at: string | null;
+}
+
+export function getContributors(
+  owner: string,
+  repo: string
+): Promise<{ repository: string; contributors: Contributor[]; debt_source: string }> {
+  return request(
+    `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors`
+  );
+}

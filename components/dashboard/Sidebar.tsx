@@ -9,6 +9,7 @@ import {
   FiHome,
   FiGithub,
   FiGitPullRequest,
+  FiUsers,
   FiBarChart2,
   FiCpu,
   FiLogOut,
@@ -35,6 +36,11 @@ const menuItems = [
     name: "Pull Requests",
     href: "/developer/pull-requests",
     icon: FiGitPullRequest,
+  },
+  {
+    name: "Contributors",
+    href: "/developer/contributors",
+    icon: FiUsers,
   },
 ];
 
