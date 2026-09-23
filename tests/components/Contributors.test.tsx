@@ -117,9 +117,12 @@ describe("Contributors page", () => {
     // next/image rewrites the src through its optimizer, so the assertion
     // is that the upstream URL it was given is the derived one.
     expect(avatar).not.toBeNull();
-    expect(decodeURIComponent(avatar!.getAttribute("src") ?? "")).toContain(
-      "https://avatars.githubusercontent.com/u/77"
-    );
+    const upstream = decodeURIComponent(avatar!.getAttribute("src") ?? "");
+    expect(upstream).toContain("https://avatars.githubusercontent.com/u/77");
+    // No query string: next.config.ts pins these hosts with an empty
+    // `search`, so an avatar URL carrying one is rejected by the image
+    // optimizer at runtime — a 400 that no unit test would otherwise see.
+    expect(upstream).not.toContain("?s=");
   });
 
   it("falls back to an initial when there is no account id to derive from", async () => {

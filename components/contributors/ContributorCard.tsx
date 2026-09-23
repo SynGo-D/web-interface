@@ -19,7 +19,12 @@ function avatarUrl(provider: string, providerUserId: string | null): string | nu
   if (!providerUserId) return null;
 
   if (provider === "github") {
-    return `https://avatars.githubusercontent.com/u/${encodeURIComponent(providerUserId)}?s=160&v=4`;
+    // No query string: next.config.ts pins these hosts with an empty
+    // `search`, which is the strict form the Next docs recommend — the
+    // permissive one lets anyone have the optimizer fetch URLs that were
+    // never intended. next/image sizes the image itself, so the ?s=
+    // parameter GitHub accepts is not needed anyway.
+    return `https://avatars.githubusercontent.com/u/${encodeURIComponent(providerUserId)}`;
   }
   return null;
 }
