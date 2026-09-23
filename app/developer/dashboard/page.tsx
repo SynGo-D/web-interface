@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
 import FindingsList from "@/components/dashboard/FindingsList";
 import OverviewCards from "@/components/analysis/OverviewCards";
-import { getUser } from "@/lib/session";
+import { isSignedIn, signedInUnknown, subscribeToSession } from "@/lib/session";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 import {
   listIntegrations,
   getRepositoryAnalysis,
@@ -22,14 +23,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [repositories, setRepositories] = useState<RepositoryFindings[]>([]);
 
-  useEffect(() => {
-    const user = getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  // The session lives in browser storage: unknown (null) while rendering
+  // on the server, read directly on the client.
+  const signedIn = useSyncExternalStore(subscribeToSession, isSignedIn, signedInUnknown);
 
-    listIntegrations()
+  // Everything here is scoped to the project chosen after sign-in.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+
+  useEffect(() => {
+    if (!signedIn || !workspace) return;
+
+    listIntegrations(workspace.organizationId, workspace.projectId)
       .then(async (integrations) => {
         const active = integrations.filter((i) => i.status === "ACTIVE");
 
@@ -47,7 +51,7 @@ export default function DashboardPage() {
       })
       .catch((error) => console.error(error))
       .finally(() => setLoading(false));
-  }, []);
+  }, [signedIn, workspace]);
 
   const totalFindings = repositories.reduce(
     (sum, repo) => sum + repo.results.reduce((s, r) => s + r.findings.length, 0),
@@ -65,14 +69,33 @@ export default function DashboardPage() {
             Code review findings across all your connected repositories.
           </p>
 
-          {loading ? (
+          {signedIn === false ? (
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+              Sign in to see your repositories.
+            </div>
+          ) : signedIn && workspace === null ? (
+            /* Nothing is loading in this state: the dashboard is scoped to a
+               project, and no project has been chosen yet. */
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+              <Link href="/select-project" className="font-medium text-[#4338CA] hover:underline">
+                Choose a project
+              </Link>{" "}
+              to see its findings.
+            </div>
+          ) : loading ? (
             <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
               Loading...
             </div>
           ) : repositories.length === 0 ? (
             <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
-              No connected repositories yet. Connect one from the Repositories
-              page to start seeing findings here.
+              This project has no connected repository yet.{" "}
+              <Link
+                href="/projects/connect-repository"
+                className="font-medium text-[#4338CA] hover:underline"
+              >
+                Connect a repository
+              </Link>{" "}
+              to start seeing findings here.
             </div>
           ) : (
             <>

@@ -1,26 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import RepositoryForm from "@/components/forms/RepositoryForm";
 import { listIntegrations, type Integration } from "@/lib/api";
-import { getUser } from "@/lib/session";
+import { isSignedIn, signedInUnknown, subscribeToSession } from "@/lib/session";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 
 export default function RepositoryPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = useState(true);
 
-  useEffect(() => {
-    const user = getUser();
-    if (!user) {
-      setLoadingIntegrations(false);
-      return;
-    }
+  // The session lives in browser storage: unknown (null) while rendering
+  // on the server, read directly on the client.
+  const signedIn = useSyncExternalStore(subscribeToSession, isSignedIn, signedInUnknown);
 
-    listIntegrations()
+  // Repositories belong to a project, so this page shows that project's.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+
+  useEffect(() => {
+    if (!signedIn || !workspace) return;
+
+    listIntegrations(workspace.organizationId, workspace.projectId)
       .then(setIntegrations)
       .catch((error) => console.error(error))
       .finally(() => setLoadingIntegrations(false));
-  }, []);
+  }, [signedIn, workspace]);
 
   const connectedIntegrations = integrations.filter(
     (integration) => integration.status !== "REVOKED"
@@ -64,7 +68,9 @@ export default function RepositoryPage() {
             Connected Repositories
           </h2>
 
-          {loadingIntegrations ? (
+          {signedIn === false ? (
+            <p className="text-gray-300">Sign in to see your connected repositories.</p>
+          ) : loadingIntegrations ? (
             <div className="mt-4 rounded-lg bg-gray-50 p-5 text-center text-gray-500">
               Loading...
             </div>

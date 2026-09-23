@@ -1,129 +1,106 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/api";
+import { ApiError, login } from "@/lib/api";
 import { saveSession } from "@/lib/session";
+import { clearWorkspace } from "@/lib/workspace";
 
+/**
+ * Signing in with an organization email and password. The password is
+ * checked against a stored hash by integration-service; what the person
+ * then sees is decided by the organizations they belong to.
+ */
 export default function LoginForm() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    // Registers/looks up the matching backend user so downstream calls
-    // (repository connect, integrations list) have a real userId to work
-    // with, then routes to the role's landing page.
-    const signInAs = async (
-        matchedEmail: string,
-        fullName: string,
-        redirectTo: string
-    ) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        setSubmitting(true);
+        setError(null);
+
         try {
-            setSubmitting(true);
-            const { token, user } = await login(matchedEmail, fullName);
+            const { token, user } = await login(email.trim().toLowerCase(), password);
+
+            // Whoever was signed in before may have been working in another
+            // organization; their project must not follow this person in.
+            clearWorkspace();
             saveSession(token, { userId: user.id, email: user.email, fullName: user.fullName });
-            router.push(redirectTo);
-        } catch (error) {
-            console.error(error);
-            alert("Unable to sign in right now. Please try again.");
-        } finally {
+
+            router.push("/select-project");
+        } catch (err) {
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Couldn't sign you in. Check your connection and try again."
+            );
             setSubmitting(false);
         }
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-
-  // Administrator
-  if (
-    email === "admin@codereview.com" &&
-    password === "admin123"
-    ) {
-        signInAs(email, "Admin User", "/admin/dashboard");
-        return;
-    }
-
-    // Senior Developer
-    if (
-        email === "developer@codereview.com" &&
-        password === "developer123"
-    ) {
-        signInAs(email, "Developer User", "/repository");
-        return;
-    }
-
-    // Project Manager
-    if (
-        email === "manager@codereview.com" &&
-        password === "manager123"
-    ) {
-        signInAs(email, "Manager User", "/manager/dashboard");
-        return;
-    }
-
-    alert("Invalid email or password.");
-    };
-
     return (
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        <div>
-            <label
-            htmlFor="email"
-            className="mb-2 block text-sm font-medium text-gray-700"
-            >
-            Email
-            </label>
+            <div>
+                <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
+                    Email
+                </label>
 
-            <input
-            id="email"
-            type="email"
-            placeholder="john@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-[#4338CA] text-black caret-[#4338CA]"
-            required
-            />
-        </div>
+                <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@yourcompany.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-[#4338CA] text-black caret-[#4338CA]"
+                    autoFocus
+                    required
+                />
+            </div>
 
-        {/* Password */}
-        <div>
-            <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium text-gray-700"
-            >
-                Password
-            </label>
+            <div>
+                <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-700">
+                    Password
+                </label>
 
-            <input
-                id="password"
-                type="password"
-                placeholder="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-[#4338CA] text-black caret-[#4338CA]"
-                required
-            />
-        </div>
+                <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-[#4338CA] text-black caret-[#4338CA]"
+                    required
+                />
+            </div>
 
-        {/* Forgot Password */}
-        <div className="flex justify-end">
+            {error && (
+                <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                </p>
+            )}
+
             <button
-            type="button"
-            className="text-sm font-medium text-[#4338CA] hover:underline"
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-lg bg-[#4338CA] py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
             >
-            Forgot Password?
+                {submitting ? "Signing in..." : "Sign In"}
             </button>
-        </div>
 
-        {/* Submit Button */}
-        <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg bg-[#4338CA] py-3 font-semibold text-white transition hover:opacity-90"
-        >
-            Sign In
-        </button>
+            <p className="text-center text-sm text-gray-600">
+                New here, or added to an organization by your admin?{" "}
+                <Link href="/signup" className="font-medium text-[#4338CA] hover:underline">
+                    Create your account
+                </Link>
+            </p>
         </form>
     );
 }

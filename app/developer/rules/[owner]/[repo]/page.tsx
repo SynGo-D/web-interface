@@ -7,17 +7,13 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import RulesManager from "@/components/rules/RulesManager";
 import ReviewUsagePanel from "@/components/rules/ReviewUsagePanel";
 import { EmptyBanner } from "@/components/analysis/AnalysisStateBanner";
-import { getUser } from "@/lib/session";
+import { isSignedIn, signedInUnknown, subscribeToSession } from "@/lib/session";
 
 export default function RulesPage() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   // The session lives in browser storage: unknown (null) during server
   // rendering, read directly on the client.
-  const signedIn = useSyncExternalStore(
-    () => () => {},
-    () => Boolean(getUser()),
-    () => null
-  );
+  const signedIn = useSyncExternalStore(subscribeToSession, isSignedIn, signedInUnknown);
 
   return (
     <div className="flex h-screen">

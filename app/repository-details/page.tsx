@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
 import { authorizeIntegration } from "@/lib/api";
 import { getUser } from "@/lib/session";
+import { getWorkspace } from "@/lib/workspace";
 
 interface Repository {
   name: string;
@@ -20,20 +20,17 @@ interface Repository {
 }
 
 export default function RepositoryDetailsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
   const errorParam = searchParams.get("error");
 
   const [repository, setRepository] = useState<Repository | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Nothing to fetch without a ?repo= parameter, so it isn't "loading".
+  const [loading, setLoading] = useState(Boolean(repoUrl));
   const [authorizing, setAuthorizing] = useState(false);
 
   useEffect(() => {
-    if (!repoUrl) {
-      setLoading(false);
-      return;
-    }
+    if (!repoUrl) return;
 
     const fetchRepository = async () => {
       try {
@@ -68,9 +65,22 @@ export default function RepositoryDetailsPage() {
       return;
     }
 
+    // A repository belongs to an organization and is filed under a
+    // project, so the connection needs to know which.
+    const workspace = getWorkspace();
+    if (!workspace) {
+      alert("Choose a project first, then connect the repository to it.");
+      window.location.href = "/select-project";
+      return;
+    }
+
     try {
       setAuthorizing(true);
-      const { authorizationUrl } = await authorizeIntegration(repoUrl);
+      const { authorizationUrl } = await authorizeIntegration(
+        repoUrl,
+        workspace.organizationId,
+        workspace.projectId
+      );
       window.location.href = authorizationUrl;
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to start authorization.");

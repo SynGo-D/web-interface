@@ -81,11 +81,27 @@ export interface RepositoryPreview {
 
 export function login(
   email: string,
-  fullName: string
+  password: string
 ): Promise<{ token: string; user: AuthenticatedUser }> {
   return request("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, fullName }),
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+/**
+ * Creating an account. Someone an admin already added to an organization
+ * registers with that same address to set their password, and keeps the
+ * membership they were given.
+ */
+export function register(
+  email: string,
+  fullName: string,
+  password: string
+): Promise<{ token: string; user: AuthenticatedUser }> {
+  return request("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, fullName, password }),
   });
 }
 
@@ -98,16 +114,28 @@ export function previewRepository(url: string): Promise<RepositoryPreview> {
 
 /** userId is no longer passed — main-backend derives it from the session token. */
 export function authorizeIntegration(
-  repositoryUrl: string
+  repositoryUrl: string,
+  organizationId: string,
+  projectId?: string | null
 ): Promise<{ integrationId: string; authorizationUrl: string }> {
   return request("/api/integrations/authorize", {
     method: "POST",
-    body: JSON.stringify({ repositoryUrl }),
+    body: JSON.stringify({ repositoryUrl, organizationId, projectId: projectId ?? null }),
   });
 }
 
-export function listIntegrations(): Promise<Integration[]> {
-  return request<Integration[]>("/api/integrations");
+/**
+ * With an organization: every repository it has connected, optionally
+ * narrowed to one project. Without one: only what the signed-in user
+ * connected themselves.
+ */
+export function listIntegrations(organizationId?: string, projectId?: string): Promise<Integration[]> {
+  const scope = new URLSearchParams();
+  if (organizationId) scope.set("organizationId", organizationId);
+  if (projectId) scope.set("projectId", projectId);
+  const query = scope.toString();
+
+  return request<Integration[]>(`/api/integrations${query ? `?${query}` : ""}`);
 }
 
 export function revokeIntegration(id: string): Promise<{ message: string }> {
@@ -449,4 +477,150 @@ export interface ReviewUsage {
 
 export function getReviewUsage(owner: string, repo: string, days = 30): Promise<ReviewUsage> {
   return request(`/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/review-usage?days=${days}`);
+}
+
+// ---------------------------------------------------------------------
+// Organizations and projects (multi-tenancy)
+// ---------------------------------------------------------------------
+
+export type OrganizationRole = "ADMIN" | "MANAGER" | "DEVELOPER";
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganizationMembership {
+  organization: Organization;
+  role: OrganizationRole;
+}
+
+export interface OrganizationMember {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: OrganizationRole;
+  joinedAt: string;
+}
+
+export interface ProjectRepositoryRef {
+  integrationId: string;
+  provider: "github" | "gitlab";
+  repositoryOwner: string;
+  repositoryName: string;
+  status: string;
+}
+
+export interface Project {
+  id: string;
+  organizationId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  repositories: ProjectRepositoryRef[];
+}
+
+/**
+ * The repositories of a project that finished connecting. A repository
+ * whose OAuth was started but never completed is still PENDING: it has no
+ * webhook and produces no reviews, so a project holding only those is
+ * treated as one that still needs a repository.
+ */
+export function connectedRepositories(project: Project): ProjectRepositoryRef[] {
+  return project.repositories.filter((repository) => repository.status === "ACTIVE");
+}
+
+/** What each role may do, mirroring integration-service's ROLE_RANK. */
+export const ROLE_RANK: Record<OrganizationRole, number> = { DEVELOPER: 0, MANAGER: 1, ADMIN: 2 };
+
+export function can(role: OrganizationRole | null | undefined, minimum: OrganizationRole): boolean {
+  return role ? ROLE_RANK[role] >= ROLE_RANK[minimum] : false;
+}
+
+function organizationPath(organizationId: string, suffix = ""): string {
+  return `/api/organizations/${encodeURIComponent(organizationId)}${suffix}`;
+}
+
+export function listOrganizations(): Promise<OrganizationMembership[]> {
+  return request("/api/organizations");
+}
+
+export function createOrganization(name: string): Promise<Organization> {
+  return request("/api/organizations", { method: "POST", body: JSON.stringify({ name }) });
+}
+
+export function listMembers(organizationId: string): Promise<OrganizationMember[]> {
+  return request(organizationPath(organizationId, "/members"));
+}
+
+export function addMember(
+  organizationId: string,
+  member: { email: string; role: OrganizationRole; fullName?: string }
+): Promise<OrganizationMember> {
+  return request(organizationPath(organizationId, "/members"), { method: "POST", body: JSON.stringify(member) });
+}
+
+export function changeMemberRole(
+  organizationId: string,
+  memberUserId: string,
+  role: OrganizationRole
+): Promise<void> {
+  return request(organizationPath(organizationId, `/members/${encodeURIComponent(memberUserId)}`), {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+}
+
+export function removeMember(organizationId: string, memberUserId: string): Promise<void> {
+  return request(organizationPath(organizationId, `/members/${encodeURIComponent(memberUserId)}`), {
+    method: "DELETE",
+  });
+}
+
+export function listProjects(organizationId: string): Promise<Project[]> {
+  return request(organizationPath(organizationId, "/projects"));
+}
+
+export function createProject(
+  organizationId: string,
+  project: { name: string; description?: string | null }
+): Promise<Project> {
+  return request(organizationPath(organizationId, "/projects"), {
+    method: "POST",
+    body: JSON.stringify(project),
+  });
+}
+
+export function updateProject(
+  organizationId: string,
+  projectId: string,
+  project: { name: string; description?: string | null }
+): Promise<Project> {
+  return request(organizationPath(organizationId, `/projects/${encodeURIComponent(projectId)}`), {
+    method: "PATCH",
+    body: JSON.stringify(project),
+  });
+}
+
+export function deleteProject(organizationId: string, projectId: string): Promise<void> {
+  return request(organizationPath(organizationId, `/projects/${encodeURIComponent(projectId)}`), {
+    method: "DELETE",
+  });
+}
+
+/** Files a connected repository under a project, or unfiles it (projectId null). */
+export function assignRepositoryToProject(
+  organizationId: string,
+  integrationId: string,
+  projectId: string | null
+): Promise<void> {
+  return request(organizationPath(organizationId, `/repositories/${encodeURIComponent(integrationId)}/project`), {
+    method: "PUT",
+    body: JSON.stringify({ projectId }),
+  });
 }

@@ -2,18 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSyncExternalStore } from "react";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 
 import {
   FiHome,
-  FiFolder,
   FiGithub,
   FiGitPullRequest,
-  FiSearch,
   FiBarChart2,
   FiCpu,
   FiLogOut,
 } from "react-icons/fi";
 
+/*
+Every entry links to a page that exists. The rest of the planned product
+is listed too, but greyed out and unclickable: a menu that leads to 404s
+reads as a broken app, while "not built yet" is honest and still shows
+where the product is going.
+*/
 const menuItems = [
   {
     name: "Dashboard",
@@ -21,13 +27,8 @@ const menuItems = [
     icon: FiHome,
   },
   {
-    name: "Projects",
-    href: "/developer/projects",
-    icon: FiFolder,
-  },
-  {
     name: "Repositories",
-    href: "/developer/repositories",
+    href: "/repository",
     icon: FiGithub,
   },
   {
@@ -35,21 +36,11 @@ const menuItems = [
     href: "/developer/pull-requests",
     icon: FiGitPullRequest,
   },
-  {
-    name: "Code Review",
-    href: "/developer/code-review",
-    icon: FiSearch,
-  },
-  {
-    name: "Debt Calculation",
-    href: "/developer/debt-calculation",
-    icon: FiBarChart2,
-  },
-  {
-    name: "AI Code Fixing",
-    href: "/developer/ai-code-fixing",
-    icon: FiCpu,
-  },
+];
+
+const comingSoon = [
+  { name: "Debt Calculation", icon: FiBarChart2 },
+  { name: "AI Code Fixing", icon: FiCpu },
 ];
 
 const bottomItems = [
@@ -63,6 +54,10 @@ const bottomItems = [
 export default function Sidebar() {
   const pathname = usePathname();
 
+  // Which project the user is working in. Read from browser storage, so
+  // it is null while rendering on the server.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+
   return (
     <aside className="flex h-screen w-72 flex-col bg-[#4338CA] text-white shadow-xl">
 
@@ -71,9 +66,23 @@ export default function Sidebar() {
           Code Review
         </h1>
 
-        <p className="mt-1 text-sm text-indigo-200">
-          Developer Dashboard
-        </p>
+        {workspace ? (
+          <div className="mt-1">
+            <p className="truncate text-sm font-medium text-white" title={workspace.projectName}>
+              {workspace.projectName}
+            </p>
+            <p className="truncate text-xs text-indigo-200" title={workspace.organizationName}>
+              {workspace.organizationName} · {workspace.role.toLowerCase()}
+            </p>
+            <Link href="/select-project" className="mt-1 inline-block text-xs text-indigo-200 underline">
+              Switch project
+            </Link>
+          </div>
+        ) : (
+          <Link href="/select-project" className="mt-1 inline-block text-sm text-indigo-200 underline">
+            Choose a project
+          </Link>
+        )}
       </div>
 
       {/* Navigation */}
@@ -87,7 +96,7 @@ export default function Sidebar() {
           {menuItems.map((item) => {
             const Icon = item.icon;
 
-            const active = pathname === item.href;
+            const active = pathname.startsWith(item.href);
 
             return (
               <Link
@@ -105,6 +114,31 @@ export default function Sidebar() {
                   {item.name}
                 </span>
               </Link>
+            );
+          })}
+        </div>
+
+        <p className="mb-3 mt-8 px-3 text-xs uppercase tracking-wider text-indigo-300">
+          Coming soon
+        </p>
+
+        <div className="space-y-2">
+          {comingSoon.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.name}
+                aria-disabled="true"
+                title="Not built yet"
+                className="flex cursor-not-allowed items-center gap-3 rounded-xl px-4 py-3 text-indigo-300/60"
+              >
+                <Icon size={20} />
+
+                <span className="font-medium">
+                  {item.name}
+                </span>
+              </div>
             );
           })}
         </div>
