@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { authorizeIntegration } from "@/lib/api";
 import { getUser } from "@/lib/session";
@@ -19,7 +19,21 @@ interface Repository {
   url: string;
 }
 
+/**
+ * useSearchParams() makes a page client-only, and Next refuses to
+ * prerender one without somewhere to show while the browser takes over.
+ * Without this boundary `next build` fails outright, so the container
+ * image cannot be built at all.
+ */
 export default function RepositoryDetailsPage() {
+  return (
+    <Suspense fallback={<p className="p-10">Loading repository...</p>}>
+      <RepositoryDetails />
+    </Suspense>
+  );
+}
+
+function RepositoryDetails() {
   const searchParams = useSearchParams();
   const repoUrl = searchParams.get("repo");
   const errorParam = searchParams.get("error");
