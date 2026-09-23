@@ -65,9 +65,9 @@ describe("Contributors page", () => {
     signedIn();
     render(<ContributorsPage />);
 
-    // Scoped to the row: figures like "3" appear elsewhere on the page,
-    // and the claim being tested is about this contributor's row.
-    const row = (await screen.findByText("amara")).closest("tr")!;
+    // Scoped to the card: figures like "3" appear elsewhere on the page,
+    // and the claim being tested is about this contributor.
+    const row = (await screen.findByText("amara")).closest("article")!;
 
     expect(within(row).getByText("3")).toBeInTheDocument();       // pull requests
     expect(within(row).getByText("+430")).toBeInTheDocument();
@@ -106,6 +106,37 @@ describe("Contributors page", () => {
 
     expect(await screen.findByText("1,250")).toBeInTheDocument();
     expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+  });
+
+  it("shows the contributor's avatar, derived from their account id", async () => {
+    signedIn();
+    render(<ContributorsPage />);
+
+    const avatar = (await screen.findByText("amara")).closest("article")!.querySelector("img");
+
+    // next/image rewrites the src through its optimizer, so the assertion
+    // is that the upstream URL it was given is the derived one.
+    expect(avatar).not.toBeNull();
+    expect(decodeURIComponent(avatar!.getAttribute("src") ?? "")).toContain(
+      "https://avatars.githubusercontent.com/u/77"
+    );
+  });
+
+  it("falls back to an initial when there is no account id to derive from", async () => {
+    // A deleted account, or a provider whose avatar URL cannot be built
+    // from an id alone.
+    getContributors.mockResolvedValue({
+      repository: "acme/shop",
+      contributors: [contributor({ provider_user_id: null })],
+      debt_source: "pending",
+    });
+    signedIn();
+
+    render(<ContributorsPage />);
+
+    const card = (await screen.findByText("amara")).closest("article")!;
+    expect(card.querySelector("img")).toBeNull();
+    expect(within(card).getByText("A")).toBeInTheDocument();
   });
 
   it("explains an empty repository rather than showing a blank table", async () => {

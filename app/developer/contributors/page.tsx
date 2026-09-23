@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "@/components/analysis/AnalysisStateBanner";
+import ContributorCard from "@/components/contributors/ContributorCard";
 import {
   ApiError,
   getContributors,
@@ -33,6 +34,10 @@ export default function ContributorsPage() {
   const [integrations, setIntegrations] = useState<Integration[] | null>(null);
   const [repository, setRepository] = useState("");
   const [contributors, setContributors] = useState<Contributor[] | null>(null);
+
+  // The selected integration, not just its name: the card builds each
+  // avatar URL from the provider plus the account id.
+  const selected = integrations?.find((i) => repositoryOf(i) === repository) ?? null;
   const [error, setError] = useState<string | null>(null);
 
   const fail = useCallback(
@@ -133,121 +138,28 @@ export default function ContributorsPage() {
               )}
 
               {contributors && contributors.length > 0 && (
-                <ContributorTable contributors={contributors} />
+                <>
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {contributors.map((contributor) => (
+                      <ContributorCard
+                        key={contributor.username}
+                        contributor={contributor}
+                        provider={selected?.provider ?? "github"}
+                      />
+                    ))}
+                  </div>
+
+                  <p className="mt-4 text-xs text-gray-500">
+                    Measured from pull requests this platform reviewed, not from the provider&apos;s commit
+                    history — someone who hasn&apos;t opened a pull request since the repository was connected
+                    won&apos;t appear.
+                  </p>
+                </>
               )}
             </>
           )}
         </div>
       </main>
     </div>
-  );
-}
-
-function ContributorTable({ contributors }: { contributors: Contributor[] }) {
-  return (
-    <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
-          <tr>
-            <th className="px-6 py-3 font-medium">Contributor</th>
-            <th className="px-6 py-3 text-right font-medium">Pull requests</th>
-            <th className="px-6 py-3 text-right font-medium">Lines changed</th>
-            <th className="px-6 py-3 text-right font-medium">Linter issues</th>
-            <th className="px-6 py-3 text-right font-medium">Review findings</th>
-            <th className="px-6 py-3 text-right font-medium">Debt introduced</th>
-          </tr>
-        </thead>
-
-        <tbody className="divide-y divide-gray-100">
-          {contributors.map((c) => (
-            <tr key={c.username} className="hover:bg-gray-50">
-              <td className="px-6 py-4">
-                <p className="font-semibold text-gray-900">{c.username}</p>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {c.analyses} {c.analyses === 1 ? "analysis" : "analyses"}
-                  {c.last_analysis_at && ` · last ${new Date(c.last_analysis_at).toLocaleDateString()}`}
-                </p>
-              </td>
-
-              <td className="px-6 py-4 text-right font-medium text-gray-900">{c.pull_requests}</td>
-
-              <td className="px-6 py-4 text-right">
-                <span className="font-medium text-green-700">+{c.lines_added.toLocaleString()}</span>
-                {" / "}
-                <span className="font-medium text-red-700">−{c.lines_removed.toLocaleString()}</span>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {c.files_changed} {c.files_changed === 1 ? "file" : "files"}
-                </p>
-              </td>
-
-              <td className="px-6 py-4 text-right">
-                <span className="font-medium text-gray-900">{c.issues}</span>
-                {c.issues > 0 && (
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {c.errors} {c.errors === 1 ? "error" : "errors"}, {c.warnings}{" "}
-                    {c.warnings === 1 ? "warning" : "warnings"}
-                  </p>
-                )}
-              </td>
-
-              <td className="px-6 py-4 text-right">
-                <ReviewFindings findings={c.review_findings} />
-              </td>
-
-              <td className="px-6 py-4 text-right">
-                <DebtCell contributor={c} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <p className="border-t border-gray-100 bg-gray-50 px-6 py-3 text-xs text-gray-500">
-        Measured from pull requests this platform reviewed, not from the provider&apos;s commit history — someone
-        who hasn&apos;t opened a pull request since the repository was connected won&apos;t appear.
-      </p>
-    </div>
-  );
-}
-
-function ReviewFindings({ findings }: { findings: Contributor["review_findings"] }) {
-  const total = findings.high + findings.medium + findings.low;
-
-  if (total === 0) {
-    return <span className="text-gray-400">—</span>;
-  }
-
-  return (
-    <>
-      <span className="font-medium text-gray-900">{total}</span>
-      <p className="mt-0.5 text-xs text-gray-500">
-        {findings.high > 0 && <span className="font-medium text-red-700">{findings.high} high</span>}
-        {findings.high > 0 && (findings.medium > 0 || findings.low > 0) && ", "}
-        {findings.medium > 0 && `${findings.medium} medium`}
-        {findings.medium > 0 && findings.low > 0 && ", "}
-        {findings.low > 0 && `${findings.low} low`}
-      </p>
-    </>
-  );
-}
-
-/**
- * The debt figure the debt calculation service will provide. Shown as an
- * explicit "not measured yet" rather than a zero or a dash: a blank in a
- * column headed "Debt introduced" reads as "none", which is a different
- * claim from "nothing has measured this".
- */
-function DebtCell({ contributor }: { contributor: Contributor }) {
-  if (contributor.debt.status === "available" && contributor.debt.score !== null) {
-    return <span className="font-semibold text-gray-900">{contributor.debt.score.toLocaleString()}</span>;
-  }
-
-  return (
-    <span
-      title="The debt calculation service isn't built yet — this is where each contributor's introduced debt will appear."
-      className="cursor-help rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500"
-    >
-      Pending
-    </span>
   );
 }
