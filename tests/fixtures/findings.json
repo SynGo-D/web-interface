@@ -1,0 +1,35 @@
+[
+  {
+    "finding_id": "f1",
+    "file_path": "src/services/user.service.ts",
+    "line": 14,
+    "column": 7,
+    "severity": "error",
+    "category": "unused_code",
+    "rule_id": "no-unused-vars",
+    "message": "'foo' is assigned a value but never used.",
+    "tool": "eslint"
+  },
+  {
+    "finding_id": "f2",
+    "file_path": "src/controller.ts",
+    "line": 22,
+    "column": 3,
+    "severity": "warning",
+    "category": "code_smell",
+    "rule_id": "no-console",
+    "message": "Unexpected console statement.",
+    "tool": "eslint"
+  },
+  {
+    "finding_id": "f3",
+    "file_path": "src/utils.ts",
+    "line": 5,
+    "column": 1,
+    "severity": "error",
+    "category": "complexity",
+    "rule_id": "complexity",
+    "message": "Function 'transform' has a complexity of 18. Maximum allowed is 10.",
+    "tool": "eslint"
+  }
+]

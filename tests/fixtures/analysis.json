@@ -1,0 +1,66 @@
+{
+  "result_id": "11111111-1111-1111-1111-111111111111",
+  "job_id": "22222222-2222-2222-2222-222222222222",
+  "repository": "codepulse-web",
+  "pull_request_number": 42,
+  "commit_sha": "a83f92deadbeef0000000000000000000000000",
+  "branch": "develop",
+  "status": "completed",
+  "findings": [
+    {
+      "finding_id": "f1",
+      "file_path": "src/services/user.service.ts",
+      "line": 14,
+      "column": 7,
+      "severity": "error",
+      "category": "unused_code",
+      "rule_id": "no-unused-vars",
+      "message": "'foo' is assigned a value but never used.",
+      "tool": "eslint"
+    },
+    {
+      "finding_id": "f2",
+      "file_path": "src/controller.ts",
+      "line": 22,
+      "column": 3,
+      "severity": "warning",
+      "category": "code_smell",
+      "rule_id": "no-console",
+      "message": "Unexpected console statement.",
+      "tool": "eslint"
+    }
+  ],
+  "metrics": {
+    "files_analyzed": 3,
+    "loc": 1000,
+    "errors": 4,
+    "warnings": 3,
+    "total_issues": 7,
+    "error_density": 4.0,
+    "warning_density": 3.0,
+    "issue_density": 7.0,
+    "complexity": { "violations": 2, "maximum": 18, "average": 14.0 },
+    "cognitive_complexity": { "violations": 1, "maximum": 21, "average": 21.0 },
+    "size": {
+      "largest_file_lines": 842,
+      "largest_function_lines": 126,
+      "max_lines_violations": 1,
+      "max_lines_per_function_violations": 1
+    },
+    "unused_code": { "unused_variables": 2, "unreachable_code": 1 }
+  },
+  "rule_statistics": [
+    { "rule_id": "no-unused-vars", "count": 23, "errors": 23, "warnings": 0 },
+    { "rule_id": "complexity", "count": 7, "errors": 7, "warnings": 0 },
+    { "rule_id": "no-console", "count": 18, "errors": 0, "warnings": 18 },
+    { "rule_id": "max-lines", "count": 8, "errors": 8, "warnings": 0 }
+  ],
+  "file_statistics": [
+    { "file_path": "src/service.ts", "loc": 243, "errors": 4, "warnings": 2, "issues": 6 },
+    { "file_path": "src/controller.ts", "loc": 180, "errors": 1, "warnings": 3, "issues": 4 },
+    { "file_path": "src/utils.ts", "loc": 92, "errors": 0, "warnings": 1, "issues": 1 }
+  ],
+  "started_at": "2026-09-03T10:00:00Z",
+  "completed_at": "2026-09-03T10:01:30Z",
+  "error_message": null
+}

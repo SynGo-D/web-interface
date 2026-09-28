@@ -1,48 +1,40 @@
 import { NextResponse } from "next/server";
+import { ApiError, previewRepository } from "@/lib/api";
 
 
 export async function POST(req: Request){
 
     const { repositoryUrl } = await req.json();
 
+    try {
+        const preview = await previewRepository(repositoryUrl);
 
-    const urlParts = repositoryUrl.split("/");
+        return NextResponse.json({
+            name: preview.repository.name,
+            owner: preview.repository.owner,
+            description: preview.repository.description ?? "",
+            stars: preview.repository.stars,
+            forks: preview.repository.forks,
+            language: preview.repository.language ?? "",
+            visibility: preview.repository.visibility,
+            created: "",
+            updated: preview.repository.updatedAt,
+            url: preview.repositoryUrl,
+        });
 
-    const owner = urlParts[3];
-    const repo = urlParts[4];
+    } catch (error) {
+        const status = error instanceof ApiError ? error.statusCode : 404;
+        const message =
+            error instanceof Error ? error.message : "Repository not found";
 
-
-    const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}`
-    );
-
-
-    if(!response.ok){
         return NextResponse.json(
             {
-                error:"Repository not found"
+                error: message
             },
             {
-                status:404
+                status
             }
         );
     }
-
-
-    const data = await response.json();
-
-
-    return NextResponse.json({
-        name:data.name,
-        owner:data.owner.login,
-        description:data.description,
-        stars:data.stargazers_count,
-        forks:data.forks_count,
-        language:data.language,
-        visibility:data.visibility,
-        created:data.created_at,
-        updated:data.updated_at,
-        url:data.html_url
-    });
 
 }

@@ -37,11 +37,6 @@ export async function GET(request: Request) {
     );
   }
 
-  // Access token returned by GitHub
-  const accessToken = data.access_token;
-
-  console.log("GitHub Access Token:", accessToken);
-
   // TODO:
   // Save the access token securely (database/session)
 

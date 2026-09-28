@@ -1,0 +1,30 @@
+{
+  "files_analyzed": 3,
+  "loc": 1000,
+  "errors": 4,
+  "warnings": 3,
+  "total_issues": 7,
+  "error_density": 4.0,
+  "warning_density": 3.0,
+  "issue_density": 7.0,
+  "complexity": {
+    "violations": 2,
+    "maximum": 18,
+    "average": 14.0
+  },
+  "cognitive_complexity": {
+    "violations": 1,
+    "maximum": 21,
+    "average": 21.0
+  },
+  "size": {
+    "largest_file_lines": 842,
+    "largest_function_lines": 126,
+    "max_lines_violations": 1,
+    "max_lines_per_function_violations": 1
+  },
+  "unused_code": {
+    "unused_variables": 2,
+    "unreachable_code": 1
+  }
+}

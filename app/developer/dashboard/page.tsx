@@ -1,75 +1,156 @@
+"use client";
+
+import { useEffect, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
-import DashboardCards from "@/components/dashboard/DashboardCards";
-import TechnicalDebtChart from "@/components/dashboard/TechnicalDebtChart";
-import CodeQualityChart from "@/components/dashboard/CodeQualityChart";
-import IssueDistributionChart from "@/components/dashboard/IssueDistributionChart";
-import ContributorsTable from "@/components/dashboard/ContributorsTable";
-import RecentPullRequests from "@/components/dashboard/RecentPullRequests";
-import RecentCodeReviews from "@/components/dashboard/RecentCodeReviews";
+import FindingsList from "@/components/dashboard/FindingsList";
+import OverviewCards from "@/components/analysis/OverviewCards";
+import { isSignedIn, signedInUnknown, subscribeToSession } from "@/lib/session";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
+import {
+  listIntegrations,
+  getRepositoryAnalysis,
+  type Integration,
+  type AnalysisResult,
+} from "@/lib/api";
 
-import { getSonarDashboard } from "@/lib/sonarApi";
+interface RepositoryFindings {
+  integration: Integration;
+  results: AnalysisResult[];
+}
 
-export default async function DashboardPage() {
-  const sonarData = await getSonarDashboard();
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [repositories, setRepositories] = useState<RepositoryFindings[]>([]);
+
+  // The session lives in browser storage: unknown (null) while rendering
+  // on the server, read directly on the client.
+  const signedIn = useSyncExternalStore(subscribeToSession, isSignedIn, signedInUnknown);
+
+  // Everything here is scoped to the project chosen after sign-in.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+
+  useEffect(() => {
+    if (!signedIn || !workspace) return;
+
+    listIntegrations(workspace.organizationId, workspace.projectId)
+      .then(async (integrations) => {
+        const active = integrations.filter((i) => i.status === "ACTIVE");
+
+        const withFindings = await Promise.all(
+          active.map(async (integration) => {
+            const results = await getRepositoryAnalysis(
+              integration.repositoryOwner,
+              integration.repositoryName
+            ).catch(() => []);
+            return { integration, results };
+          })
+        );
+
+        setRepositories(withFindings);
+      })
+      .catch((error) => console.error(error))
+      .finally(() => setLoading(false));
+  }, [signedIn, workspace]);
+
+  const totalFindings = repositories.reduce(
+    (sum, repo) => sum + repo.results.reduce((s, r) => s + r.findings.length, 0),
+    0
+  );
 
   return (
-    <div className="min-h-screen bg-gray-100">
-
+    <div className="flex h-screen">
       <Sidebar />
 
-      <main className="ml-64 min-h-screen p-6 lg:p-8">
+      <main className="flex-1 overflow-y-auto bg-gray-50 p-8">
+        <div className="mx-auto max-w-5xl">
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-2 text-gray-500">
+            Code review findings across all your connected repositories.
+          </p>
 
-        {/* Header */}
-        <div className="mb-7 flex items-center justify-between">
+          {signedIn === false ? (
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+              Sign in to see your repositories.
+            </div>
+          ) : signedIn && workspace === null ? (
+            /* Nothing is loading in this state: the dashboard is scoped to a
+               project, and no project has been chosen yet. */
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+              <Link href="/select-project" className="font-medium text-[#4338CA] hover:underline">
+                Choose a project
+              </Link>{" "}
+              to see its findings.
+            </div>
+          ) : loading ? (
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+              Loading...
+            </div>
+          ) : repositories.length === 0 ? (
+            <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+              This project has no connected repository yet.{" "}
+              <Link
+                href="/projects/connect-repository"
+                className="font-medium text-[#4338CA] hover:underline"
+              >
+                Connect a repository
+              </Link>{" "}
+              to start seeing findings here.
+            </div>
+          ) : (
+            <>
+              <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="flex gap-8">
+                  <div>
+                    <p className="text-sm text-gray-500">Connected repositories</p>
+                    <p className="text-2xl font-bold text-gray-900">{repositories.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Open findings</p>
+                    <p className="text-2xl font-bold text-gray-900">{totalFindings}</p>
+                  </div>
+                </div>
+              </div>
 
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 lg:text-4xl">
-              Welcome Back 👋
-            </h1>
+              <div className="mt-6 space-y-6">
+                {repositories.map(({ integration, results }) => {
+                  const latest = results[0];
 
-            <p className="mt-1 text-sm text-gray-500 lg:text-base">
-              Here's what's happening with your repositories today.
-            </p>
-          </div>
+                  return (
+                    <div
+                      key={integration.id}
+                      className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                          {integration.repositoryOwner}/{integration.repositoryName}
+                        </h2>
+                        {latest && (
+                          <Link
+                            href={`/developer/analysis/${integration.repositoryOwner}/${integration.repositoryName}/${latest.pull_request_number}`}
+                            className="text-sm font-medium text-[#4338CA] hover:underline"
+                          >
+                            View full analysis →
+                          </Link>
+                        )}
+                      </div>
 
-          <div className="rounded-lg bg-[#4338CA] px-4 py-2 text-sm font-semibold text-white shadow-sm">
-            Senior Developer
-          </div>
+                      {latest && latest.status === "completed" && (
+                        <div className="mt-4">
+                          <OverviewCards metrics={latest.metrics} />
+                        </div>
+                      )}
 
+                      <hr className="my-4 border-gray-100" />
+                      <FindingsList results={results} />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Summary Cards */}
-        <DashboardCards data={sonarData} />
-
-        {/* Technical Debt + Issue Distribution */}
-        <div className="mt-7 grid gap-6 lg:grid-cols-2">
-
-          <TechnicalDebtChart data={sonarData} />
-
-          <IssueDistributionChart data={sonarData} />
-
-        </div>
-
-        {/* Code Quality + Top Contributors */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
-          <CodeQualityChart data={sonarData} />
-
-          <ContributorsTable />
-
-        </div>
-
-        {/* Recent Activity */}
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
-          <RecentPullRequests />
-
-          <RecentCodeReviews />
-
-        </div>
-
       </main>
-
     </div>
   );
 }
