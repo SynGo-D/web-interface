@@ -12,10 +12,11 @@ import {
 import {
   TechnicalDebtApiError,
   calculatePullRequestDebt,
-  getDebtRepositories,
   getDebtSummary,
   type DebtSummary,
 } from "@/lib/technicalDebtApi";
+import { connectedRepositories, listProjects } from "@/lib/api";
+import { getWorkspace } from "@/lib/workspace";
 import DebtBreakdown from "./DebtBreakdown";
 import DebtControls from "./DebtControls";
 import DebtHeader from "./DebtHeader";
@@ -34,6 +35,25 @@ type Notice = { kind: "success" | "error"; message: string };
 
 const messageOf = (e: unknown) =>
   e instanceof Error ? e.message : "Unexpected error";
+
+/*
+"owner/name" for each connected repository of the current project. Empty
+when no project is selected, which leaves the field free-typed rather than
+blocking — the repository name is the only thing the debt routes need, and
+a suggestion list is a convenience, not a gate.
+*/
+async function listRepositoriesForWorkspace(): Promise<string[]> {
+  const workspace = getWorkspace();
+  if (!workspace) return [];
+
+  const projects = await listProjects(workspace.organizationId);
+  const project = projects.find((p) => p.id === workspace.projectId);
+  if (!project) return [];
+
+  return connectedRepositories(project).map(
+    (r) => `${r.repositoryOwner}/${r.repositoryName}`
+  );
+}
 
 export default function DebtDashboard() {
 
@@ -64,11 +84,20 @@ export default function DebtDashboard() {
     }
   }, []);
 
-  // State is only set in the promise callbacks, never synchronously.
+  /*
+  The suggestions come from the project the user is working in, not from
+  "every repository that has debt data". The debt service can answer the
+  latter, but only by listing other organisations' repositories to whoever
+  asks — it has no notion of tenancy. Asking the project instead is both
+  scoped by construction and more useful: it suggests the repositories of
+  the project in front of you.
+
+  State is only set in the promise callbacks, never synchronously.
+  */
   const loadRepositories = useCallback(
     () =>
-      getDebtRepositories().then(
-        ({ repositories }) => {
+      listRepositoriesForWorkspace().then(
+        (repositories) => {
           setRepositories(repositories);
 
           // ?repo=owner/name preselects a repository.

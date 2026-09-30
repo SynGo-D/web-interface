@@ -1,5 +1,17 @@
-// Data access for the technical-debt service, via the /api/technical-debt proxy
-// route. `repository` is "owner/repo".
+import { getToken } from "./session";
+
+// Data access for technical debt, through main-backend. `repository` is
+// "owner/repo".
+//
+// It goes through main-backend rather than a Next proxy route deliberately.
+// technical-debt-service has no authentication of its own, and the proxy
+// this replaced forwarded the browser to it with no session check — which
+// made every organisation's remediation costs, file paths and security
+// counts readable by anyone who could guess owner/repo. main-backend's
+// repository router applies requireAuth and requireRepositoryAccess to
+// everything under /:owner/:repo, so these inherit the same tenant check
+// as the analysis routes. A Next route handler cannot do that: the session
+// token lives in browser storage, which the server never sees.
 
 export type HealthStatus = "HEALTHY" | "GOOD" | "NEEDS_ATTENTION" | "CRITICAL";
 
@@ -79,17 +91,29 @@ export class TechnicalDebtApiError extends Error {
   }
 }
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_MAIN_BACKEND_URL ?? "http://localhost:5000";
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/technical-debt/${path}`, {
+  const token = getToken();
+
+  const response = await fetch(`${API_BASE_URL}/api/repositories/${path}`, {
     cache: "no-store",
     ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
 
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    // main-backend answers with {message}; a detail can still arrive from
+    // the debt service through an UpstreamServiceError.
     throw new TechnicalDebtApiError(
-      body.detail ?? body.error ?? `HTTP ${response.status}`,
+      body.message ?? body.detail ?? body.error ?? `HTTP ${response.status}`,
       response.status
     );
   }
@@ -99,23 +123,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 // 404 (TechnicalDebtApiError.status) = no debt reviews for this repository yet.
 export function getDebtSummary(repository: string) {
-  return request<DebtSummary>(`repositories/${repository}/debt/summary`);
+  return request<DebtSummary>(`${repository}/debt/summary`);
 }
 
 export function getPullRequestDebt(repository: string, pullRequestNumber: number) {
   return request<DebtReview>(
-    `repositories/${repository}/debt/pull-requests/${pullRequestNumber}`
+    `${repository}/debt/pull-requests/${pullRequestNumber}`
   );
 }
 
 export function getDebtHistory(repository: string, limit = 20) {
   return request<{ repository: string; reviews: DebtReview[] }>(
-    `repositories/${repository}/debt?limit=${limit}`
+    `${repository}/debt?limit=${limit}`
   );
-}
-
-export function getDebtRepositories() {
-  return request<{ repositories: string[] }>("debt/repositories");
 }
 
 // Reads the PR's latest completed analysis from analysis-engine, runs the
@@ -123,7 +143,7 @@ export function getDebtRepositories() {
 // 404 = analysis-engine has no completed analysis for this PR.
 export function calculatePullRequestDebt(repository: string, pullRequestNumber: number) {
   return request<DebtCalculation>(
-    `repositories/${repository}/debt/pull-requests/${pullRequestNumber}/calculate`,
+    `${repository}/debt/pull-requests/${pullRequestNumber}/calculate`,
     { method: "POST" }
   );
 }
