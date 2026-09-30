@@ -16,6 +16,17 @@ type DebtControlsProps = {
   onCalculate: (repository: string, pullRequestNumber: number) => void;
 };
 
+const REPOSITORY_PATTERN = /^[^/\s]+\/[^/\s]+$/;
+
+// "https://github.com/owner/repo.git" / "github.com/owner/repo/" -> "owner/repo"
+function normalizeRepository(value: string): string {
+  return value
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "")
+    .replace(/\.git$/i, "")
+    .replace(/\/+$/, "");
+}
+
 const inputClass =
   "w-full rounded-lg border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm text-gray-700 outline-none transition focus:border-[#4338CA] focus:ring-2 focus:ring-[#4338CA]/10";
 
@@ -31,15 +42,38 @@ export default function DebtControls({
   const [draftRepository, setDraftRepository] = useState(repository);
   const [pullRequest, setPullRequest] = useState("");
 
-  const repositoryValid = /^[^/\s]+\/[^/\s]+$/.test(draftRepository.trim());
+  // Follow repository changes made elsewhere (initial load, a calculation
+  // for another repository) without remounting - a remount mid-click would
+  // swallow the Calculate click and clear the PR number.
+  const [syncedRepository, setSyncedRepository] = useState(repository);
+  if (repository !== syncedRepository) {
+    setSyncedRepository(repository);
+    setDraftRepository(repository);
+  }
+
+  const normalizedRepository = normalizeRepository(draftRepository);
+  const repositoryValid = REPOSITORY_PATTERN.test(normalizedRepository);
   const pullRequestNumber = Number(pullRequest);
-  const canCalculate =
-    repositoryValid && Number.isInteger(pullRequestNumber) && pullRequestNumber > 0 && !calculating;
+  const pullRequestValid = Number.isInteger(pullRequestNumber) && pullRequestNumber > 0;
+  const canCalculate = repositoryValid && pullRequestValid && !calculating;
+
+  // Why the button is disabled, shown under the form.
+  const hint = calculating
+    ? null
+    : !repositoryValid
+      ? draftRepository.trim()
+        ? "Enter the repository as owner/repository, e.g. SynGo-D/test-repository."
+        : "Enter a repository."
+      : !pullRequestValid
+        ? "Enter the Pull Request number to calculate its debt."
+        : null;
 
   const commitRepository = () => {
-    const value = draftRepository.trim();
-    if (value !== repository && /^[^/\s]+\/[^/\s]+$/.test(value)) {
-      onRepositoryChange(value);
+    if (normalizedRepository !== draftRepository) {
+      setDraftRepository(normalizedRepository);
+    }
+    if (repositoryValid && normalizedRepository !== repository) {
+      onRepositoryChange(normalizedRepository);
     }
   };
 
@@ -63,7 +97,7 @@ export default function DebtControls({
         onSubmit={(e) => {
           e.preventDefault();
           if (canCalculate) {
-            onCalculate(draftRepository.trim(), pullRequestNumber);
+            onCalculate(normalizedRepository, pullRequestNumber);
           }
         }}
       >
@@ -162,6 +196,12 @@ export default function DebtControls({
         </button>
 
       </form>
+
+      {hint && (
+        <p className="mt-3 text-sm text-gray-500">
+          {hint}
+        </p>
+      )}
 
     </div>
   );
