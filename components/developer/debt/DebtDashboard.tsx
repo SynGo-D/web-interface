@@ -152,7 +152,6 @@ export default function DebtDashboard() {
       <DebtHeader />
 
       <DebtControls
-        key={repository}
         repositories={repositories}
         repository={repository}
         calculating={calculating !== null}
