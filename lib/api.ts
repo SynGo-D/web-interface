@@ -646,6 +646,8 @@ export interface Contributor {
   username: string;
   provider_user_id: string | null;
   pull_requests: number;
+  /** Which pull requests are theirs — what main-backend joins debt on. */
+  pull_request_numbers: number[];
   analyses: number;
   files_changed: number;
   lines_added: number;

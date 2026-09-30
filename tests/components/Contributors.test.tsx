@@ -30,6 +30,7 @@ function contributor(overrides: Partial<Contributor> = {}): Contributor {
     username: "amara",
     provider_user_id: "77",
     pull_requests: 3,
+    pull_request_numbers: [1, 2, 3],
     analyses: 7,
     files_changed: 12,
     lines_added: 430,
@@ -92,20 +93,69 @@ describe("Contributors page", () => {
     expect(screen.queryByText("0", { selector: "td span" })).not.toBeInTheDocument();
   });
 
-  it("shows a real debt score once the service reports one", async () => {
+  it("shows a real debt figure once the service reports one", async () => {
     getContributors.mockResolvedValue({
       repository: "acme/shop",
       contributors: [contributor({
         debt: { score: 1250, status: "available", introduced_at: "2026-09-23T10:00:00.000Z" },
       })],
-      debt_source: "available",
+      debt_source: "technical-debt-service",
     });
     signedIn();
 
     render(<ContributorsPage />);
 
-    expect(await screen.findByText("1,250")).toBeInTheDocument();
+    // Minutes are what the service counts; hours are what a person can
+    // weigh against a working day.
+    expect(await screen.findByText("20.8 h")).toBeInTheDocument();
     expect(screen.queryByText("Pending")).not.toBeInTheDocument();
+  });
+
+  it("keeps minutes below an hour, where hours would round away to nothing", async () => {
+    getContributors.mockResolvedValue({
+      repository: "acme/shop",
+      contributors: [contributor({
+        debt: { score: 25, status: "available", introduced_at: null },
+      })],
+      debt_source: "technical-debt-service",
+    });
+    signedIn();
+
+    render(<ContributorsPage />);
+
+    // "0.4 h" reads as nothing at all; 25 minutes is real work.
+    expect(await screen.findByText("25 min")).toBeInTheDocument();
+  });
+
+  it("drops the decimal past a day, which is false precision on an estimate", async () => {
+    getContributors.mockResolvedValue({
+      repository: "acme/shop",
+      contributors: [contributor({
+        debt: { score: 11238, status: "available", introduced_at: null },
+      })],
+      debt_source: "technical-debt-service",
+    });
+    signedIn();
+
+    render(<ContributorsPage />);
+
+    expect(await screen.findByText("187 h")).toBeInTheDocument();
+  });
+
+  it("still says Pending when nothing has been calculated, never zero", async () => {
+    // "0" under "Debt introduced" is praise. "Not measured" is not.
+    getContributors.mockResolvedValue({
+      repository: "acme/shop",
+      contributors: [contributor({
+        debt: { score: null, status: "pending", introduced_at: null },
+      })],
+      debt_source: "pending",
+    });
+    signedIn();
+
+    render(<ContributorsPage />);
+
+    expect(await screen.findByText("Pending")).toBeInTheDocument();
   });
 
   it("shows the contributor's avatar, derived from their account id", async () => {

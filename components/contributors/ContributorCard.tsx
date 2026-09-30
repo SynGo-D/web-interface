@@ -82,11 +82,13 @@ function Stat({
 }
 
 /**
- * The debt figure the debt calculation service will provide.
+ * Remediation time attributed to this person, summed over their pull
+ * requests by technical-debt-service.
  *
- * Shown as an explicit "not measured yet" rather than a zero or a dash: a
- * blank under a heading like "Debt introduced" reads as "none", which is
- * a different claim from "nothing has measured this".
+ * "Pending" is still shown when nothing has been calculated, rather than a
+ * zero or a dash: a blank under a heading like "Debt introduced" reads as
+ * "none", which is a different claim from "nothing has measured this". The
+ * two must not look alike, because one of them is praise.
  */
 function Debt({ debt }: { debt: Contributor["debt"] }) {
   const measured = debt.status === "available" && debt.score !== null;
@@ -96,10 +98,19 @@ function Debt({ debt }: { debt: Contributor["debt"] }) {
       <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Debt introduced</span>
 
       {measured ? (
-        <span className="text-lg font-semibold text-gray-900">{debt.score!.toLocaleString()}</span>
+        <span
+          className="text-lg font-semibold text-gray-900"
+          title={
+            debt.introduced_at
+              ? `Estimated remediation time, last calculated ${new Date(debt.introduced_at).toLocaleString()}`
+              : "Estimated remediation time"
+          }
+        >
+          {formatRemediation(debt.score!)}
+        </span>
       ) : (
         <span
-          title="The debt calculation service isn't built yet — this is where each contributor's introduced debt will appear."
+          title="No debt calculation has run for this person's pull requests yet."
           className="cursor-help rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500"
         >
           Pending
@@ -107,6 +118,25 @@ function Debt({ debt }: { debt: Contributor["debt"] }) {
       )}
     </div>
   );
+}
+
+/**
+ * Minutes as something a person can weigh against a working day.
+ *
+ * The debt service counts in minutes, which is right for arithmetic and
+ * wrong for reading: "1,950" invites the question "of what?", and the
+ * honest answer is about four days. Anything under an hour keeps its
+ * minutes rather than rounding to "0.3 h", which reads as nothing at all.
+ */
+function formatRemediation(minutes: number): string {
+  if (minutes < 60) {
+    return `${Math.round(minutes)} min`;
+  }
+
+  const hours = minutes / 60;
+  // One decimal up to a day, then whole hours — "32.5 h" is useful,
+  // "187.3 h" is false precision on an estimate this rough.
+  return hours < 24 ? `${hours.toFixed(1)} h` : `${Math.round(hours)} h`;
 }
 
 /**
