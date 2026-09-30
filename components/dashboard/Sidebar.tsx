@@ -42,10 +42,19 @@ const menuItems = [
     href: "/developer/contributors",
     icon: FiUsers,
   },
+  {
+    name: "Debt Calculation",
+    href: "/developer/debt",
+    icon: FiBarChart2,
+  },
 ];
 
+/*
+Code Review is absent on purpose. A page for it exists, but every number
+on it is hard-coded, and the real equivalent is already reachable through
+Pull Requests. Linking it would present fixtures as analysis.
+*/
 const comingSoon = [
-  { name: "Debt Calculation", icon: FiBarChart2 },
   { name: "AI Code Fixing", icon: FiCpu },
 ];
 
