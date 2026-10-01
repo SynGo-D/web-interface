@@ -74,6 +74,10 @@ function debtSummary() {
     average_health_score: 72, risk_counts: { CRITICAL: 0, HIGH: 2, MEDIUM: 3, LOW: 3 },
     by_type: [{ debt_type: "MAINTAINABILITY", count: 8, minutes: 600 }],
     top_issues: [], pull_requests: [], trend: [],
+    latest_pull_request: {
+      pull_request_number: 42, total_debt_minutes: 600, total_debt_hours: 10,
+      estimated_cost: 250, health_score: 72, created_at: "2026-09-27T00:00:00.000Z",
+    },
   };
 }
 

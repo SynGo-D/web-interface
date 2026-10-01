@@ -56,6 +56,21 @@ export interface DebtReview {
   issues?: DebtIssue[];
 }
 
+/*
+The newest pull request's debt on its own, alongside the repository totals
+rather than instead of them. Every other figure in DebtSummary counts every
+pull request, so a headline that quietly meant one of them put 6.75 hours
+next to a $543.75 cost — an $80/hour developer on a $25/hour rate.
+*/
+export interface LatestPullRequestDebt {
+  pull_request_number: number;
+  total_debt_minutes: number;
+  total_debt_hours: number;
+  estimated_cost: number;
+  health_score: number;
+  created_at: string;
+}
+
 export interface DebtSummary {
   repository: string;
   pull_requests_analyzed: number;
@@ -69,6 +84,7 @@ export interface DebtSummary {
   top_issues: (DebtIssue & { pull_request_number: number })[];
   // Latest review per pull request, newest first.
   pull_requests: DebtReview[];
+  latest_pull_request: LatestPullRequestDebt;
   // Oldest -> newest, for plotting left to right.
   trend: {
     created_at: string;

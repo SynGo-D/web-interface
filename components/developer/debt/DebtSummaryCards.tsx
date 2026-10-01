@@ -63,6 +63,16 @@ export default function DebtSummaryCards({ summary }: { summary: DebtSummary }) 
       noteClass: "text-gray-500",
       icon: GitPullRequest,
     },
+    {
+      // Its own card rather than a narrower reading of "Technical Debt"
+      // above: that figure sits beside a cost and a finding count which
+      // both cover every pull request, and the three have to agree.
+      title: "Latest Pull Request",
+      value: formatMinutes(summary.latest_pull_request.total_debt_minutes),
+      note: `Introduced by PR #${summary.latest_pull_request.pull_request_number}`,
+      noteClass: "text-gray-500",
+      icon: GitPullRequest,
+    },
   ];
 
   return (
