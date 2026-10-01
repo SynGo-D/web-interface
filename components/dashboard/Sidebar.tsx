@@ -47,16 +47,24 @@ const menuItems = [
     href: "/developer/debt",
     icon: FiBarChart2,
   },
+  {
+    name: "AI Code Fixing",
+    href: "/developer/ai-fixing",
+    icon: FiCpu,
+  },
 ];
 
 /*
-Code Review is absent on purpose. A page for it exists, but every number
-on it is hard-coded, and the real equivalent is already reachable through
-Pull Requests. Linking it would present fixtures as analysis.
+Nothing is pending any more, but the section stays: the next feature to
+land wants a home here, and "coming soon" is how this menu has always
+admitted to a page that does not exist yet rather than leading to a 404.
+
+Code Review is absent on purpose, and not because it is unfinished. A page
+for it exists, but every number on it is hard-coded, and the real
+equivalent is already reachable through Pull Requests. Listing it either
+way would present fixtures as analysis.
 */
-const comingSoon = [
-  { name: "AI Code Fixing", icon: FiCpu },
-];
+const comingSoon: { name: string; icon: typeof FiCpu }[] = [];
 
 const bottomItems = [
   {
@@ -133,9 +141,11 @@ export default function Sidebar() {
           })}
         </div>
 
-        <p className="mb-3 mt-8 px-3 text-xs uppercase tracking-wider text-indigo-300">
-          Coming soon
-        </p>
+        {comingSoon.length > 0 && (
+          <p className="mb-3 mt-8 px-3 text-xs uppercase tracking-wider text-indigo-300">
+            Coming soon
+          </p>
+        )}
 
         <div className="space-y-2">
           {comingSoon.map((item) => {

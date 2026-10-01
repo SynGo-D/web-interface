@@ -7,7 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Arial, Helvetica, sans-serif;
+  /* The font layout.tsx already loads and pays for. Was Arial, which
+     replaced a circular `var(--font-sans)` — defined, but not the font
+     being downloaded on every page. */
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);

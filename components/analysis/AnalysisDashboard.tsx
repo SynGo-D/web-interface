@@ -10,6 +10,7 @@ import FileStatisticsTable from "./FileStatisticsTable";
 import FindingsExplorer from "./FindingsExplorer";
 import PullRequestChangesSection from "./PullRequestChangesSection";
 import AiReviewSection from "./AiReviewSection";
+import AiFixPanel from "@/components/ai/AiFixPanel";
 
 /**
  * Composes one AnalysisResult into the full dashboard. A "failed" result
@@ -60,6 +61,7 @@ export default function AnalysisDashboard({ result }: { result: AnalysisResult }
         findings={result.findings}
         prScopeAvailable={result.changes?.status === "available"}
       />
+      <AiFixPanel key={`${result.repository}:${result.pull_request_number}:${result.commit_sha}`} result={result} />
     </div>
   );
 }

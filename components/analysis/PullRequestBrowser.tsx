@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AnalysisDashboard from "./AnalysisDashboard";
+import AiFixPanel from "@/components/ai/AiFixPanel";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "./AnalysisStateBanner";
 import {
   ApiError,
@@ -27,14 +28,17 @@ function repositoryOf(integration: Integration): string {
  * read that PR's review. The repository list comes from the user's own
  * integrations; the pull requests are whichever ones have been analysed.
  */
-export default function PullRequestBrowser({ organizationId, projectId }: {
+export default function PullRequestBrowser({ organizationId, projectId, fixing = false, initialRepository = "", initialNumber = null }: {
   organizationId?: string;
   projectId?: string;
+  fixing?: boolean;
+  initialRepository?: string;
+  initialNumber?: number | null;
 } = {}) {
   const [integrations, setIntegrations] = useState<Integration[] | null>(null);
-  const [repository, setRepository] = useState<string>("");
+  const [repository, setRepository] = useState<string>(initialRepository);
   const [pullRequests, setPullRequests] = useState<PullRequest[] | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(initialNumber);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -182,7 +186,7 @@ export default function PullRequestBrowser({ organizationId, projectId }: {
               <select
                 value={selected ?? ""}
                 disabled={!pullRequests || pullRequests.length === 0}
-                onChange={(event) => setSelected(Number(event.target.value))}
+                onChange={(event) => { setSelected(Number(event.target.value)); setResult(null); }}
                 className="mt-1 min-w-[280px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-black outline-none focus:border-[#4338CA] disabled:bg-gray-100"
               >
                 {pullRequests === null && <option value="">Loading…</option>}
@@ -222,7 +226,7 @@ export default function PullRequestBrowser({ organizationId, projectId }: {
         <EmptyBanner message={`No pull request of ${repository} has been analysed yet.`} />
       )}
       {!error && selected !== null && !result && <LoadingBanner message="Loading analysis..." />}
-      {!error && result && <AnalysisDashboard result={result} />}
+      {!error && result && (fixing ? <AiFixPanel key={`${result.repository}:${result.pull_request_number}:${result.commit_sha}`} result={result} fixing /> : <AnalysisDashboard result={result} />)}
     </div>
   );
 }
