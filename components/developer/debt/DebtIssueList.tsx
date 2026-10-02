@@ -82,7 +82,7 @@ export default function DebtIssueList({ issues }: { issues: Issue[] }) {
                   </div>
 
                   <p className="mt-1 truncate text-sm font-semibold text-gray-800">
-                    {issue.rule_id ?? issue.tool} — {issue.file_path}
+                    {issue.rule_id ?? issue.tool} · {issue.file_path}
                     {issue.line != null && `:${issue.line}`}
                   </p>
 

@@ -151,7 +151,7 @@ export default function ContributorsPage() {
 
                   <p className="mt-4 text-xs text-gray-500">
                     Measured from pull requests this platform reviewed, not from the provider&apos;s commit
-                    history — someone who hasn&apos;t opened a pull request since the repository was connected
+                    history. Someone who hasn&apos;t opened a pull request since the repository was connected
                     won&apos;t appear.
                   </p>
                 </>

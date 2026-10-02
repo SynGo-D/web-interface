@@ -114,7 +114,7 @@ export default function PullRequestSelector() {
 
               {pullRequests.map((pr) => (
                 <option key={pr.id} value={pr.id}>
-                  {pr.id} — {pr.title}
+                  {pr.id} · {pr.title}
                 </option>
               ))}
 

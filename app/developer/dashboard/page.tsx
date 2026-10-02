@@ -206,7 +206,7 @@ export default function DashboardPage() {
                   {latestCompleted && (
                     <Section
                       title="Code quality"
-                      subtitle={`Latest completed analysis — pull request #${latestCompleted.pull_request_number}`}
+                      subtitle={`Latest completed analysis, pull request #${latestCompleted.pull_request_number}`}
                       action={
                         <Link
                           href={`/developer/analysis/${repository}/${latestCompleted.pull_request_number}`}

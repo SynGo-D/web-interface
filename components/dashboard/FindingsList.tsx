@@ -31,7 +31,7 @@ export default function FindingsList({ results }: { results: AnalysisResult[] })
                 result.status === "completed" ? "text-green-600" : "text-red-600"
               }`}
             >
-              {result.status} — {result.findings.length} finding
+              {result.status}, {result.findings.length} finding
               {result.findings.length === 1 ? "" : "s"}
             </span>
           </div>

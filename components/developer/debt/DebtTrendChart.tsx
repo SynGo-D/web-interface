@@ -80,7 +80,7 @@ export default function DebtTrendChart({ trend }: { trend: DebtSummary["trend"] 
 
             <Tooltip
               labelFormatter={(label, payload) =>
-                `${label} — ${payload?.[0]?.payload?.date ?? ""}`
+                `${label} · ${payload?.[0]?.payload?.date ?? ""}`
               }
               formatter={(value, name) =>
                 name === "health"

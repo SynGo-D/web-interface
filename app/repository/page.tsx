@@ -86,7 +86,7 @@ export default function RepositoryPage() {
                   className="rounded-lg bg-gray-50 p-5 text-gray-700"
                 >
                   {integration.repositoryOwner}/{integration.repositoryName}
-                  {" — "}
+                  {" · "}
                   <span className="text-sm text-gray-500">{integration.status}</span>
                   {integration.status === "ACTIVE" && (
                     <span

@@ -10,7 +10,7 @@ const button = "rounded-lg bg-[#4338CA] px-4 py-2 text-sm font-medium text-white
 const statusLabels: Record<FixJob["status"], string> = {
   queued: "Queued", collecting: "Loading PR and database context", generating_suggestion: "Generating suggestion",
   patch_ready: "Ready for review", validating: "Validating patch", validation_succeeded: "Validation succeeded",
-  validation_failed: "Validation failed", creating_pull_request: "Creating pull request", pull_request_created: "Pull request created — awaiting review",
+  validation_failed: "Validation failed", creating_pull_request: "Creating pull request", pull_request_created: "Pull request created, awaiting review",
   already_fixed: "Already fixed or no findings remain", failed: "Failed", merged: "Fix pull request merged",
 };
 
@@ -129,7 +129,7 @@ export default function AiFixPanel({ result, fixing = false }: { result: Analysi
         </div>
       </div>}
       {job?.validation && <div className="mt-4 text-sm"><h3 className="font-semibold">Validation results: {job.validation.status}</h3>
-        <ul className="mt-2 space-y-2">{job.validation.checks.map((c, i) => <li key={i}>{c.name}: <strong>{c.status}</strong> — {c.details}</li>)}</ul></div>}
+        <ul className="mt-2 space-y-2">{job.validation.checks.map((c, i) => <li key={i}>{c.name}: <strong>{c.status}</strong>. {c.details}</li>)}</ul></div>}
       {fixing && job?.pullRequestUrl && <div className="mt-5 rounded-lg bg-indigo-50 p-4 text-sm">
         <p>Fix branch: <code>{job.fixBranch}</code></p>
         <a className="mt-2 inline-block font-medium text-indigo-700 underline" href={job.pullRequestUrl} target="_blank" rel="noreferrer">View fix PR #{job.createdPullRequestNumber}</a>

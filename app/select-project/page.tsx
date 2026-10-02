@@ -233,7 +233,7 @@ function repositorySummary(project: Project): string {
   const pending = project.repositories.length - connected.length;
 
   if (connected.length === 0) {
-    return pending > 0 ? "Waiting for repository authorization" : "No repository yet — connect one";
+    return pending > 0 ? "Waiting for repository authorization" : "No repository yet. Connect one.";
   }
 
   const names = connected
