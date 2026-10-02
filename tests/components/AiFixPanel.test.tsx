@@ -28,14 +28,26 @@ describe("AI fixing workflow", () => {
     await user.click(screen.getByRole("button", { name: `Fix selected (${findings.length})` }));
     expect(aiRequest).toHaveBeenCalledWith("jobs", expect.objectContaining({ selectedFindingIds: findings.map(f => f.finding_id) }));
   });
-  it("keeps existing analysis visible when AI is unavailable and has no merge control", async () => {
+  it("reports an unavailable AI service and offers no merge control", async () => {
     vi.mocked(aiRequest).mockRejectedValue(new Error("AI service unavailable"));
-    const user = userEvent.setup(); render(<AnalysisDashboard result={result} />);
+    const user = userEvent.setup(); render(<AiFixPanel result={result} fixing />);
     await user.click(screen.getByRole("button", { name: "Generate AI suggestions" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("AI service unavailable");
+    expect(screen.queryByRole("button", { name: /merge/i })).not.toBeInTheDocument();
+  });
+
+  it("is absent from the analysis dashboard, which reads the review and nothing more", () => {
+    // The panel used to render at the bottom of every pull request's
+    // analysis. It lives only on the AI Code Fixing page now, so this page
+    // shows the review and the metrics it always did.
+    render(<AnalysisDashboard result={result} />);
+
+    expect(screen.queryByRole("button", { name: "Generate AI suggestions" })).not.toBeInTheDocument();
+    expect(screen.queryByText("AI suggestions")).not.toBeInTheDocument();
+
+    // The sections it sat beneath are untouched.
     expect(screen.getByText("Files Analyzed")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Rule Distribution" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /merge/i })).not.toBeInTheDocument();
   });
   it("requires an explicit confirmation before requesting a merge", async () => {
     vi.mocked(aiRequest).mockResolvedValue({ job: { ...job, status: "pull_request_created", commitSha: "b".repeat(40),
