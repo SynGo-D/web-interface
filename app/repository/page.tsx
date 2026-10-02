@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 import RepositoryForm from "@/components/forms/RepositoryForm";
 import { listIntegrations, type Integration } from "@/lib/api";
 import { isSignedIn, signedInUnknown, subscribeToSession } from "@/lib/session";
 import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 
 export default function RepositoryPage() {
+  const router = useRouter();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = useState(true);
 
@@ -30,12 +32,40 @@ export default function RepositoryPage() {
     (integration) => integration.status !== "REVOKED"
   );
 
+  /*
+  Back to wherever they came from, which is usually the sidebar page that
+  sent them here — this page has no sidebar of its own, so without this
+  there is nothing to leave by except the browser chrome.
+
+  router.back() alone is not enough. Opened directly, in a new tab, from a
+  bookmark or as the first page after signing in, there is no previous
+  entry and the button would do nothing at all while still looking like it
+  should. history.length is 1 only in that case, so it is the signal for
+  falling back to a destination that always exists.
+  */
+  const goBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/developer/dashboard");
+  }, [router]);
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#4338CA]">
       <div className="mx-auto max-w-5xl ">
 
         {/* Header */}
         <div className="mb-8 ">
+          <button
+            type="button"
+            onClick={goBack}
+            className="mb-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-indigo-100 transition hover:bg-indigo-500/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <span aria-hidden="true">&larr;</span>
+            Back
+          </button>
+
           <h1 className="text-3xl font-bold text-gray-200">
             Repository Dashboard
           </h1>
