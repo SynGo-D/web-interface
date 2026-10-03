@@ -118,9 +118,13 @@ describe("Dashboard", () => {
     expect(await screen.findByText("Code quality")).toBeInTheDocument();
     expect(await screen.findByText("Technical debt")).toBeInTheDocument();
     expect(await screen.findByText("Top contributors")).toBeInTheDocument();
-    expect(screen.getByText("Recent findings")).toBeInTheDocument();
+    expect(screen.getByText("Total technical debt")).toBeInTheDocument();
     // From OverviewCards, so the real metrics reached the real component.
     expect(screen.getByText("Files Analyzed")).toBeInTheDocument();
+    // The finding list and the health trend belong to the pages built for
+    // them; the dashboard summarises rather than repeats.
+    expect(screen.queryByText("Recent findings")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Health & Debt Trend/i)).not.toBeInTheDocument();
   });
 
   it("invites a calculation when no debt has been measured, rather than showing zeros", async () => {

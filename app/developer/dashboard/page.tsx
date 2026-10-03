@@ -6,10 +6,9 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "@/components/analysis/AnalysisStateBanner";
 import OverviewCards from "@/components/analysis/OverviewCards";
 import QualityProfileChart from "@/components/analysis/QualityProfileChart";
-import FindingsList from "@/components/dashboard/FindingsList";
 import ContributorCard from "@/components/contributors/ContributorCard";
 import DebtSummaryCards from "@/components/developer/debt/DebtSummaryCards";
-import DebtTrendChart from "@/components/developer/debt/DebtTrendChart";
+import DebtOverTimeChart from "@/components/developer/debt/DebtOverTimeChart";
 import DebtBreakdown from "@/components/developer/debt/DebtBreakdown";
 import {
   ApiError,
@@ -250,10 +249,6 @@ export default function DashboardPage() {
                     </Section>
                   )}
 
-                  <Section title="Recent findings" subtitle="Across this repository's latest analyses">
-                    <FindingsList results={analyses} />
-                  </Section>
-
                 </div>
               )}
             </>
@@ -345,14 +340,11 @@ function Debt({ state, repository }: { state: DebtState; repository: string }) {
         <DebtSummaryCards summary={state.summary} variant="headline" />
       </Section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Section title="Health &amp; debt trend">
-          <DebtTrendChart trend={state.summary.trend} />
-        </Section>
-        <Section title="Debt breakdown">
-          <DebtBreakdown summary={state.summary} />
-        </Section>
-      </div>
+      <DebtOverTimeChart trend={state.summary.trend} />
+
+      <Section title="Debt breakdown">
+        <DebtBreakdown summary={state.summary} />
+      </Section>
     </>
   );
 }
