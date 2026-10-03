@@ -1,0 +1,5 @@
+[
+  { "file_path": "src/service.ts", "loc": 243, "errors": 4, "warnings": 2, "issues": 6 },
+  { "file_path": "src/controller.ts", "loc": 180, "errors": 1, "warnings": 3, "issues": 4 },
+  { "file_path": "src/utils.ts", "loc": 92, "errors": 0, "warnings": 1, "issues": 1 }
+]

@@ -1,0 +1,34 @@
+{
+  "result_id": "33333333-3333-3333-3333-333333333333",
+  "job_id": "44444444-4444-4444-4444-444444444444",
+  "repository": "codepulse-web",
+  "pull_request_number": 43,
+  "commit_sha": "b83f92deadbeef0000000000000000000000000",
+  "branch": "feature/broken",
+  "status": "failed",
+  "findings": [],
+  "metrics": {
+    "files_analyzed": 0,
+    "loc": 0,
+    "errors": 0,
+    "warnings": 0,
+    "total_issues": 0,
+    "error_density": 0,
+    "warning_density": 0,
+    "issue_density": 0,
+    "complexity": { "violations": 0, "maximum": null, "average": null },
+    "cognitive_complexity": { "violations": 0, "maximum": null, "average": null },
+    "size": {
+      "largest_file_lines": 0,
+      "largest_function_lines": null,
+      "max_lines_violations": 0,
+      "max_lines_per_function_violations": 0
+    },
+    "unused_code": { "unused_variables": 0, "unreachable_code": 0 }
+  },
+  "rule_statistics": [],
+  "file_statistics": [],
+  "started_at": "2026-09-03T10:00:00Z",
+  "completed_at": "2026-09-03T10:00:05Z",
+  "error_message": "eslint: eslint exited with unexpected code 2: config error"
+}
