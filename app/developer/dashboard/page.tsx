@@ -5,6 +5,7 @@ import Link from "next/link";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "@/components/analysis/AnalysisStateBanner";
 import OverviewCards from "@/components/analysis/OverviewCards";
+import QualityProfileChart from "@/components/analysis/QualityProfileChart";
 import FindingsList from "@/components/dashboard/FindingsList";
 import ContributorCard from "@/components/contributors/ContributorCard";
 import DebtSummaryCards from "@/components/developer/debt/DebtSummaryCards";
@@ -219,6 +220,8 @@ export default function DashboardPage() {
                       <OverviewCards metrics={latestCompleted.metrics} />
                     </Section>
                   )}
+
+                  <QualityProfileChart results={analyses} />
 
                   <Debt state={debt} repository={repository} />
 
