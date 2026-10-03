@@ -127,6 +127,26 @@ describe("Dashboard", () => {
     expect(screen.queryByText(/Health & Debt Trend/i)).not.toBeInTheDocument();
   });
 
+  it("shows the top contributors as small cards beside the repository selector", async () => {
+    getContributors.mockResolvedValue({
+      repository: "acme/shop",
+      debt_source: "technical-debt-service",
+      contributors: [
+        contributor({ username: "amara", debt: { score: 600, status: "available", introduced_at: null } }),
+        contributor({ username: "bo", debt: { score: null, status: "pending", introduced_at: null } }),
+      ],
+    });
+    signedIn();
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("amara")).toBeInTheDocument();
+    // 600 minutes, read as a working figure rather than a raw count.
+    expect(screen.getByText(/10\.0 h · 3 PRs/)).toBeInTheDocument();
+    // Uncosted people say so rather than showing a zero.
+    expect(screen.getByText(/Pending · 3 PRs/)).toBeInTheDocument();
+  });
+
   it("invites a calculation when no debt has been measured, rather than showing zeros", async () => {
     // A health score of 0 is a real and alarming value. A repository
     // nobody has costed must not be made to look like one.

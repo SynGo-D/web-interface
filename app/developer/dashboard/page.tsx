@@ -6,7 +6,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "@/components/analysis/AnalysisStateBanner";
 import OverviewCards from "@/components/analysis/OverviewCards";
 import QualityProfileChart from "@/components/analysis/QualityProfileChart";
-import ContributorCard from "@/components/contributors/ContributorCard";
+import ContributorMiniCard from "@/components/contributors/ContributorMiniCard";
 import DebtSummaryCards from "@/components/developer/debt/DebtSummaryCards";
 import DebtOverTimeChart from "@/components/developer/debt/DebtOverTimeChart";
 import DebtBreakdown from "@/components/developer/debt/DebtBreakdown";
@@ -131,11 +131,11 @@ export default function DashboardPage() {
 
   const latestCompleted = analyses?.find((result) => result.status === "completed") ?? null;
 
-  // Busiest first, and only the three that fit a row.
+  // Busiest first, and only the four that fit the strip beside the selector.
   const topContributors = (contributors ?? [])
     .slice()
     .sort((a, b) => (b.debt.score ?? 0) - (a.debt.score ?? 0) || b.pull_requests - a.pull_requests)
-    .slice(0, 3);
+    .slice(0, 4);
 
   return (
     <div className="flex h-screen">
@@ -144,9 +144,6 @@ export default function DashboardPage() {
       <main className="flex-1 overflow-y-auto bg-gray-50 p-8">
         <div className="mx-auto max-w-6xl">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-500">
-            Code quality, technical debt and contributors for one repository.
-          </p>
 
           {signedIn === false ? (
             <div className="mt-8"><EmptyBanner message="Sign in to see your dashboard." /></div>
@@ -156,28 +153,65 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <label className="text-sm">
-                  <span className="block font-medium text-gray-700">Repository</span>
-                  <select
-                    value={repository}
-                    onChange={(event) => {
-                      setRepository(event.target.value);
-                      setAnalyses(null);
-                      setContributors(null);
-                      setDebt({ status: "loading" });
-                    }}
-                    className="mt-1 min-w-[260px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-black outline-none focus:border-[#4338CA]"
-                  >
-                    {integrations === null && <option value="">Loading…</option>}
-                    {integrations?.length === 0 && <option value="">No repositories yet</option>}
-                    {integrations?.map((integration) => (
-                      <option key={integration.id} value={repositoryOf(integration)}>
-                        {repositoryOf(integration)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <div
+                className={
+                  topContributors.length > 0
+                    ? "mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]"
+                    : "mt-6"
+                }
+              >
+
+                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <label className="text-sm">
+                    <span className="block font-medium text-gray-700">Repository</span>
+                    <select
+                      value={repository}
+                      onChange={(event) => {
+                        setRepository(event.target.value);
+                        setAnalyses(null);
+                        setContributors(null);
+                        setDebt({ status: "loading" });
+                      }}
+                      className="mt-1 min-w-[260px] rounded-lg border border-gray-300 px-3 py-2 text-sm text-black outline-none focus:border-[#4338CA]"
+                    >
+                      {integrations === null && <option value="">Loading…</option>}
+                      {integrations?.length === 0 && <option value="">No repositories yet</option>}
+                      {integrations?.map((integration) => (
+                        <option key={integration.id} value={repositoryOf(integration)}>
+                          {repositoryOf(integration)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {topContributors.length > 0 && (
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <h2 className="text-sm font-semibold text-gray-900">Top contributors</h2>
+                        <p className="text-xs text-gray-500">By debt introduced</p>
+                      </div>
+                      <Link
+                        href="/developer/contributors"
+                        className="text-xs font-medium text-[#4338CA] hover:underline"
+                      >
+                        All contributors →
+                      </Link>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+                      {topContributors.map((contributor) => (
+                        <ContributorMiniCard
+                          key={contributor.username}
+                          contributor={contributor}
+                          provider={selected?.provider ?? "github"}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
 
               {error && <div className="mt-6"><ErrorBanner message={error} /></div>}
@@ -203,6 +237,8 @@ export default function DashboardPage() {
               {!error && analyses && analyses.length > 0 && (
                 <div className="mt-6 space-y-6">
 
+                  <Debt state={debt} repository={repository} />
+
                   {latestCompleted && (
                     <Section
                       title="Code quality"
@@ -221,33 +257,6 @@ export default function DashboardPage() {
                   )}
 
                   <QualityProfileChart results={analyses} />
-
-                  <Debt state={debt} repository={repository} />
-
-                  {topContributors.length > 0 && (
-                    <Section
-                      title="Top contributors"
-                      subtitle="By debt introduced, then by pull requests opened"
-                      action={
-                        <Link
-                          href="/developer/contributors"
-                          className="text-sm font-medium text-[#4338CA] hover:underline"
-                        >
-                          All contributors →
-                        </Link>
-                      }
-                    >
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {topContributors.map((contributor) => (
-                          <ContributorCard
-                            key={contributor.username}
-                            contributor={contributor}
-                            provider={selected?.provider ?? "github"}
-                          />
-                        ))}
-                      </div>
-                    </Section>
-                  )}
 
                 </div>
               )}
@@ -340,11 +349,10 @@ function Debt({ state, repository }: { state: DebtState; repository: string }) {
         <DebtSummaryCards summary={state.summary} variant="headline" />
       </Section>
 
-      <DebtOverTimeChart trend={state.summary.trend} />
-
-      <Section title="Debt breakdown">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DebtOverTimeChart trend={state.summary.trend} />
         <DebtBreakdown summary={state.summary} />
-      </Section>
+      </div>
     </>
   );
 }
