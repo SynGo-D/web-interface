@@ -15,7 +15,20 @@ import {
   healthStatusOf,
 } from "./debtFormat";
 
-export default function DebtSummaryCards({ summary }: { summary: DebtSummary }) {
+/**
+ * "headline" shows the two figures the dashboard is asked for, effort and
+ * cost, as a pair of large cards. "full" is the debt dashboard's own set,
+ * where the breakdown is the whole point of the page.
+ */
+type Variant = "full" | "headline";
+
+export default function DebtSummaryCards({
+  summary,
+  variant = "full",
+}: {
+  summary: DebtSummary;
+  variant?: Variant;
+}) {
 
   const health = HEALTH_STYLES[healthStatusOf(summary.average_health_score)];
 
@@ -74,6 +87,32 @@ export default function DebtSummaryCards({ summary }: { summary: DebtSummary }) 
       icon: GitPullRequest,
     },
   ];
+
+  if (variant === "headline") {
+    return (
+      <div className="grid gap-6 md:grid-cols-2">
+
+        <div className="rounded-2xl bg-white p-8 shadow-sm">
+          <h2 className="text-4xl font-bold text-gray-800">
+            {formatMinutes(summary.total_debt_minutes)}
+          </h2>
+          <p className="mt-3 text-sm text-gray-500">
+            Technical debt to remediate
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-8 shadow-sm">
+          <h2 className="text-4xl font-bold text-gray-800">
+            {formatCost(summary.estimated_cost)}
+          </h2>
+          <p className="mt-3 text-sm text-gray-500">
+            Estimated cost at the configured rate
+          </p>
+        </div>
+
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

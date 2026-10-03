@@ -335,14 +335,14 @@ function Debt({ state, repository }: { state: DebtState; repository: string }) {
     <>
       <Section
         title="Technical debt"
-        subtitle="Remediation effort, cost and risk across analysed pull requests"
+        subtitle="Remediation effort and cost across analysed pull requests"
         action={
           <Link href="/developer/debt" className="text-sm font-medium text-[#4338CA] hover:underline">
             Debt dashboard →
           </Link>
         }
       >
-        <DebtSummaryCards summary={state.summary} />
+        <DebtSummaryCards summary={state.summary} variant="headline" />
       </Section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
