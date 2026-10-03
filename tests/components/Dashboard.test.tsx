@@ -147,6 +147,20 @@ describe("Dashboard", () => {
     expect(screen.getByText(/Pending · 3 PRs/)).toBeInTheDocument();
   });
 
+  it("leads with debt, then quality, and keeps the debt charts for the foot", async () => {
+    signedIn();
+
+    render(<DashboardPage />);
+
+    const headline = await screen.findByText("Technical debt");
+    const quality = screen.getByText("Code quality");
+    const charts = screen.getByText("Total technical debt");
+
+    // Node.DOCUMENT_POSITION_FOLLOWING: the argument comes after the node.
+    expect(headline.compareDocumentPosition(quality) & 4).toBeTruthy();
+    expect(quality.compareDocumentPosition(charts) & 4).toBeTruthy();
+  });
+
   it("invites a calculation when no debt has been measured, rather than showing zeros", async () => {
     // A health score of 0 is a real and alarming value. A repository
     // nobody has costed must not be made to look like one.

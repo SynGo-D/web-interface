@@ -258,6 +258,8 @@ export default function DashboardPage() {
 
                   <QualityProfileChart results={analyses} />
 
+                  <DebtCharts state={debt} />
+
                 </div>
               )}
             </>
@@ -336,23 +338,36 @@ function Debt({ state, repository }: { state: DebtState; repository: string }) {
   }
 
   return (
-    <>
-      <Section
-        title="Technical debt"
-        subtitle="Remediation effort and cost across analysed pull requests"
-        action={
-          <Link href="/developer/debt" className="text-sm font-medium text-[#4338CA] hover:underline">
-            Debt dashboard →
-          </Link>
-        }
-      >
-        <DebtSummaryCards summary={state.summary} variant="headline" />
-      </Section>
+    <Section
+      title="Technical debt"
+      subtitle="Remediation effort and cost across analysed pull requests"
+      action={
+        <Link href="/developer/debt" className="text-sm font-medium text-[#4338CA] hover:underline">
+          Debt dashboard →
+        </Link>
+      }
+    >
+      <DebtSummaryCards summary={state.summary} variant="headline" />
+    </Section>
+  );
+}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DebtOverTimeChart trend={state.summary.trend} />
-        <DebtBreakdown summary={state.summary} />
-      </div>
-    </>
+/*
+The two debt charts, at the foot of the page.
+
+Separate from the headline above because they sit at opposite ends of
+the dashboard with the quality half between them, and because they have
+nothing to say until there is a calculation: the headline has already
+explained a missing, failed or pending one, and saying it twice on one
+page would be worse than saying it once.
+*/
+function DebtCharts({ state }: { state: DebtState }) {
+  if (state.status !== "ready") return null;
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <DebtOverTimeChart trend={state.summary.trend} />
+      <DebtBreakdown summary={state.summary} />
+    </div>
   );
 }
