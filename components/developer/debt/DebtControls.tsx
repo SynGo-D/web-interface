@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { WITHHELD } from "@/lib/capabilities";
 import {
   GitBranch,
   GitPullRequest,
@@ -12,6 +13,8 @@ type DebtControlsProps = {
   repositories: string[];
   repository: string;
   calculating: boolean;
+  /** False for a manager, who reads the debt but does not spend on it. */
+  mayCalculate: boolean;
   onRepositoryChange: (repository: string) => void;
   onCalculate: (repository: string, pullRequestNumber: number) => void;
 };
@@ -34,6 +37,7 @@ export default function DebtControls({
   repositories,
   repository,
   calculating,
+  mayCalculate,
   onRepositoryChange,
   onCalculate,
 }: DebtControlsProps) {
@@ -87,13 +91,19 @@ export default function DebtControls({
         </h2>
 
         <p className="mt-1 text-sm text-gray-500">
-          View a repository&apos;s debt, or calculate debt for a Pull Request the analysis engine has already analysed.
+          {mayCalculate
+            ? "View a repository's debt, or calculate debt for a Pull Request the analysis engine has already analysed."
+            : "View a repository's debt."}
         </p>
 
       </div>
 
       <form
-        className="grid gap-5 lg:grid-cols-[2fr_1fr_auto] lg:items-end"
+        className={
+          mayCalculate
+            ? "grid gap-5 lg:grid-cols-[2fr_1fr_auto] lg:items-end"
+            : "grid gap-5"
+        }
         onSubmit={(e) => {
           e.preventDefault();
           if (canCalculate) {
@@ -146,6 +156,7 @@ export default function DebtControls({
         </div>
 
         {/* Pull Request */}
+        {mayCalculate && (
         <div>
 
           <label
@@ -175,7 +186,9 @@ export default function DebtControls({
           </div>
 
         </div>
+        )}
 
+        {mayCalculate && (
         <button
           type="submit"
           disabled={!canCalculate}
@@ -194,12 +207,19 @@ export default function DebtControls({
           {calculating ? "Calculating…" : "Calculate Debt"}
 
         </button>
+        )}
 
       </form>
 
-      {hint && (
+      {mayCalculate && hint && (
         <p className="mt-3 text-sm text-gray-500">
           {hint}
+        </p>
+      )}
+
+      {!mayCalculate && (
+        <p className="mt-3 text-sm text-gray-500">
+          {WITHHELD.debtAndFixes}
         </p>
       )}
 

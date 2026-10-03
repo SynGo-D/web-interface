@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import RulesManager from "@/components/rules/RulesManager";
 import * as api from "@/lib/api";
+import { clearWorkspace, saveWorkspace } from "@/lib/workspace";
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>();
@@ -18,7 +19,18 @@ const suggested: api.BusinessRule = {
   rationale: "Privacy.", source: "suggested", status: "suggested", evidence: "src/log.py:3: logger.info(order.id)",
 };
 
+/* Editing rules is a capability, so these need to know who is asking. */
+function signedInAs(role: "ADMIN" | "MANAGER" | "DEVELOPER") {
+  saveWorkspace({
+    organizationId: "org-1", organizationName: "Acme", role,
+    projectId: "project-1", projectName: "Shop",
+  });
+}
+
 beforeEach(() => {
+  localStorage.clear();
+  clearWorkspace();
+  signedInAs("DEVELOPER");
   vi.mocked(api.getRules).mockResolvedValue({ rules: [active, suggested], mining: false });
 });
 
@@ -75,5 +87,18 @@ describe("RulesManager", () => {
     render(<RulesManager owner="acme" repo="shop" />);
 
     expect(await screen.findByRole("button", { name: "Reading the repository…" })).toBeDisabled();
+  });
+
+  it("shows a manager the rules in force and nothing to change them with", async () => {
+    signedInAs("MANAGER");
+    render(<RulesManager owner="acme" repo="shop" />);
+
+    expect(await screen.findByText("Refunds over $500 need a manager.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Suggest rules/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add rule" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Business rules and AI feedback are for developers and administrators/)
+    ).toBeInTheDocument();
   });
 });

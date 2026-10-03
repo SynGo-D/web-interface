@@ -1,9 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FeedbackButtons from "@/components/analysis/FeedbackButtons";
 import ReviewUsagePanel from "@/components/rules/ReviewUsagePanel";
 import * as api from "@/lib/api";
+import { clearWorkspace, saveWorkspace } from "@/lib/workspace";
+
+/* Rating is a capability, so these components need to know who is asking. */
+function signedInAs(role: "ADMIN" | "MANAGER" | "DEVELOPER") {
+  saveWorkspace({
+    organizationId: "org-1", organizationName: "Acme", role,
+    projectId: "project-1", projectName: "Shop",
+  });
+}
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>();
@@ -11,6 +20,20 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 
 describe("FeedbackButtons", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    clearWorkspace();
+    signedInAs("DEVELOPER");
+  });
+
+  it("offers no rating to a manager, and shows the tally instead", () => {
+    signedInAs("MANAGER");
+    render(<FeedbackButtons feedback={{ useful: 2, not_useful: 1, wrong: 0, mine: null }} onFeedback={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: /Useful/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Rated 2 useful, 1 not useful, 0 wrong/)).toBeInTheDocument();
+  });
+
   it("records a verdict, highlights it and updates the counts", async () => {
     const onFeedback = vi.fn(async () => undefined);
     const user = userEvent.setup();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
   addRule,
   ApiError,
@@ -11,6 +11,8 @@ import {
   type BusinessRule,
   type NewBusinessRule,
 } from "@/lib/api";
+import { WITHHELD, allows } from "@/lib/capabilities";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 
 const severityStyles: Record<BusinessRule["severity"], string> = {
   high: "bg-red-100 text-red-700",
@@ -53,6 +55,12 @@ export default function RulesManager({ owner, repo }: { owner: string; repo: str
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [branch, setBranch] = useState("main");
+
+  // Managers read the rules and do not edit them, which is the table in
+  // the user manual and what main-backend enforces. Hiding the controls
+  // is a courtesy; the 403 is the actual rule.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+  const mayEdit = allows(workspace?.role, "rules");
 
   const show = useCallback((body: { rules: BusinessRule[]; mining: boolean }) => {
     setRules(body.rules);
@@ -135,25 +143,36 @@ export default function RulesManager({ owner, repo }: { owner: string; repo: str
         {rules === null ? (
           <p className="mt-3 text-gray-500">Loading…</p>
         ) : active.length === 0 ? (
-          <p className="mt-3 text-gray-500">No rules yet. Add one below, or ask for suggestions.</p>
+          <p className="mt-3 text-gray-500">
+            {mayEdit ? "No rules yet. Add one below, or ask for suggestions." : "No rules yet."}
+          </p>
         ) : (
           <ul className="mt-3 divide-y divide-gray-100">
             {active.map((rule) => (
               <li key={rule.rule_id} className="flex flex-wrap items-start gap-3 py-3">
                 <RuleText rule={rule} />
-                <button
-                  type="button"
-                  onClick={() => run(() => deleteRule(owner, repo, rule.rule_id))}
-                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  Remove
-                </button>
+                {mayEdit && (
+                  <button
+                    type="button"
+                    onClick={() => run(() => deleteRule(owner, repo, rule.rule_id))}
+                    className="rounded-lg border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Remove
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         )}
       </div>
 
+      {!mayEdit && (
+        <p className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500 shadow-sm">
+          {WITHHELD.rules}
+        </p>
+      )}
+
+      {mayEdit && (
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-gray-900">Suggested rules</h2>
@@ -211,7 +230,9 @@ export default function RulesManager({ owner, repo }: { owner: string; repo: str
           </p>
         )}
       </div>
+      )}
 
+      {mayEdit && (
       <form onSubmit={submit} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-gray-900">Add a rule</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -256,6 +277,7 @@ export default function RulesManager({ owner, repo }: { owner: string; repo: str
           Add rule
         </button>
       </form>
+      )}
     </div>
   );
 }

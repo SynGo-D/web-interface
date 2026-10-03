@@ -25,6 +25,8 @@ type PullRequestDebtTableProps = {
   repository: string;
   pullRequests: DebtReview[];
   calculating: boolean;
+  /** False for a manager, who reads the assessment but does not rerun it. */
+  mayRecalculate: boolean;
   onRecalculate: (pullRequestNumber: number) => void;
 };
 
@@ -34,6 +36,7 @@ export default function PullRequestDebtTable({
   repository,
   pullRequests,
   calculating,
+  mayRecalculate,
   onRecalculate,
 }: PullRequestDebtTableProps) {
 
@@ -157,18 +160,20 @@ export default function PullRequestDebtTable({
                     <td className="py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
 
-                        <button
-                          type="button"
-                          title="Recalculate this Pull Request"
-                          disabled={calculating}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRecalculate(review.pull_request_number);
-                          }}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition hover:bg-white hover:text-[#4338CA] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <RefreshCw size={15} />
-                        </button>
+                        {mayRecalculate && (
+                          <button
+                            type="button"
+                            title="Recalculate this Pull Request"
+                            disabled={calculating}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRecalculate(review.pull_request_number);
+                            }}
+                            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition hover:bg-white hover:text-[#4338CA] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <RefreshCw size={15} />
+                          </button>
+                        )}
 
                         {isOpen ? (
                           <ChevronUp size={18} className="text-gray-400" />

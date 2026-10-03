@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -16,7 +16,8 @@ import {
   type DebtSummary,
 } from "@/lib/technicalDebtApi";
 import { connectedRepositories, listProjects } from "@/lib/api";
-import { getWorkspace } from "@/lib/workspace";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
+import { allows } from "@/lib/capabilities";
 import DebtBreakdown from "./DebtBreakdown";
 import DebtControls from "./DebtControls";
 import DebtHeader from "./DebtHeader";
@@ -65,6 +66,11 @@ export default function DebtDashboard() {
 
   // Ignore a summary response if the user has since switched repository.
   const latestRepository = useRef("");
+
+  // A manager reads the debt; calculating it spends on two AI calls per
+  // finding, which the roles table gives to developers and administrators.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+  const mayCalculate = allows(workspace?.role, "debtAndFixes");
 
   const loadSummary = useCallback(async (repo: string) => {
     latestRepository.current = repo;
@@ -184,6 +190,7 @@ export default function DebtDashboard() {
         repositories={repositories}
         repository={repository}
         calculating={calculating !== null}
+        mayCalculate={mayCalculate}
         onRepositoryChange={changeRepository}
         onCalculate={calculate}
       />
@@ -284,6 +291,7 @@ export default function DebtDashboard() {
                 repository={repository}
                 pullRequests={view.summary.pull_requests}
                 calculating={calculating !== null}
+                mayRecalculate={mayCalculate}
                 onRecalculate={(pr) => calculate(repository, pr)}
               />
             </div>

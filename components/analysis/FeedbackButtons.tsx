@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { AgentFinding, FeedbackVerdict } from "@/lib/api";
+import { allows } from "@/lib/capabilities";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 
 const OPTIONS: { verdict: FeedbackVerdict; label: string }[] = [
   { verdict: "useful", label: "👍 Useful" },
@@ -27,6 +29,12 @@ export default function FeedbackButtons({
   const [counts, setCounts] = useState<Counts>(feedback ?? EMPTY);
   const [error, setError] = useState(false);
 
+  // Rating is one of the capabilities a manager does not hold: a "wrong"
+  // suppresses the finding on later reviews, so it is a change to what
+  // the repository reports, not an opinion.
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+  const mayRate = allows(workspace?.role, "rules");
+
   async function choose(verdict: FeedbackVerdict) {
     if (verdict === counts.mine) return;
     const previous = counts;
@@ -44,6 +52,15 @@ export default function FeedbackButtons({
       setCounts(previous);
       setError(true);
     }
+  }
+
+  if (!mayRate) {
+    const total = counts.useful + counts.not_useful + counts.wrong;
+    return total === 0 ? null : (
+      <p className="mt-3 text-xs text-gray-500">
+        Rated {counts.useful} useful, {counts.not_useful} not useful, {counts.wrong} wrong.
+      </p>
+    );
   }
 
   return (
