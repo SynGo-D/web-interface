@@ -3,11 +3,16 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PullRequestBrowser from "@/components/analysis/PullRequestBrowser";
 import * as api from "@/lib/api";
+import * as ai from "@/lib/aiSuggestions";
 import metricsFixture from "../fixtures/metrics.json";
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof api>();
   return { ...actual, listIntegrations: vi.fn(), getRepositoryAnalysis: vi.fn(), getPullRequestAnalysis: vi.fn() };
+});
+vi.mock("@/lib/aiSuggestions", async (importOriginal) => {
+  const actual = await importOriginal<typeof ai>();
+  return { ...actual, getFixablePullRequests: vi.fn() };
 });
 
 function integration(owner: string, name: string, id = `${owner}-${name}`): api.Integration {
@@ -28,9 +33,11 @@ function result(number: number, overrides: Partial<api.AnalysisResult> = {}): ap
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(api.listIntegrations).mockResolvedValue([integration("acme", "shop"), integration("acme", "web")]);
   vi.mocked(api.getRepositoryAnalysis).mockResolvedValue([result(42), result(7), result(42)]);
   vi.mocked(api.getPullRequestAnalysis).mockImplementation(async (_o, _r, number) => result(number));
+  vi.mocked(ai.getFixablePullRequests).mockResolvedValue([]);
 });
 
 describe("PullRequestBrowser", () => {
@@ -78,6 +85,37 @@ describe("PullRequestBrowser", () => {
     render(<PullRequestBrowser />);
 
     expect(await screen.findByText(/No pull request of acme\/shop has been analysed yet/)).toBeInTheDocument();
+  });
+
+  it("offers only open PRs whose current analysed commit still has findings for fixing", async () => {
+    const finding: api.Finding = { finding_id: "f1", file_path: "src/a.js", line: 1, column: 1,
+      severity: "error", category: "correctness", rule_id: "rule", message: "Problem", tool: "eslint" };
+    vi.mocked(api.getRepositoryAnalysis).mockResolvedValue([
+      result(42, { findings: [finding] }),
+      result(7, { findings: [finding], commit_sha: "stale" }),
+      result(5, { findings: [] }),
+    ]);
+    vi.mocked(api.getPullRequestAnalysis).mockImplementation(async (_o, _r, number) =>
+      result(number, { findings: [finding] }));
+    vi.mocked(ai.getFixablePullRequests).mockResolvedValue([
+      { number: 42, headSha: "abc123", sourceBranch: "feature-42" },
+      { number: 7, headSha: "current", sourceBranch: "feature-7" },
+      { number: 5, headSha: "abc123", sourceBranch: "feature-5" },
+    ]);
+
+    render(<PullRequestBrowser fixing />);
+
+    const prSelect = (await screen.findAllByRole("combobox"))[1];
+    await waitFor(() => expect([...prSelect.querySelectorAll("option")].map(o => o.value)).toEqual(["42"]));
+    expect(ai.getFixablePullRequests).toHaveBeenCalledWith("acme", "shop");
+  });
+
+  it("does not load a closed PR supplied in the page URL", async () => {
+    vi.mocked(ai.getFixablePullRequests).mockResolvedValue([]);
+    render(<PullRequestBrowser fixing initialRepository="acme/shop" initialNumber={42} />);
+
+    expect(await screen.findByText(/No open pull request of acme\/shop/)).toBeInTheDocument();
+    expect(api.getPullRequestAnalysis).not.toHaveBeenCalled();
   });
 
   it("points a project with no repositories at the Repositories page", async () => {

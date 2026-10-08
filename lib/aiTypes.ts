@@ -44,6 +44,12 @@ export interface PullRequestContext {
   analysis: Record<string, unknown>;
 }
 
+export interface FixablePullRequest {
+  number: number;
+  headSha: string;
+  sourceBranch: string;
+}
+
 export interface ValidationResult {
   status: "passed" | "failed";
   patchDigest: string;
