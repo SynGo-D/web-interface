@@ -45,6 +45,7 @@ export default function AiFixPanel({
   const [owner, repository] = result.repository.split("/");
   const cacheKey = `ai-job:${result.repository}:${result.pull_request_number}:${result.commit_sha}:${fixing}`;
   const busy = pending || activeJob(job);
+  const selectionUnavailable = job?.status === "merged" || job?.status === "already_fixed";
 
   useEffect(() => {
     mounted.current = true;
@@ -200,7 +201,7 @@ export default function AiFixPanel({
         <p className="py-4 text-gray-500">No findings available for this pull request.</p>
       )}
 
-      {fixing && result.findings.length > 0 && (
+      {fixing && result.findings.length > 0 && !selectionUnavailable && (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -308,6 +309,14 @@ export default function AiFixPanel({
             </div>
           )}
         </>
+      )}
+
+      {fixing && selectionUnavailable && (
+        <p className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+          {job?.status === "merged"
+            ? "This fix has been merged. Run a new analysis before selecting any remaining findings."
+            : "This pull request is closed, merged, or has no current findings available for AI fixing."}
+        </p>
       )}
 
       {!fixing &&
