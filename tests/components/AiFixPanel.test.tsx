@@ -133,6 +133,22 @@ describe("AI fixing workflow", () => {
     );
   });
 
+  it("removes finding selection after the PR is merged or no longer fixable", async () => {
+    vi.mocked(aiRequest).mockResolvedValue({
+      job: { ...job, status: "already_fixed", patch: null,
+        error: { code: "already_fixed", message: "The original pull request is no longer open." } },
+    });
+    const finding = result.findings[0];
+    const user = userEvent.setup();
+    render(<AiFixPanel result={result} fixing />);
+    await user.click(screen.getByRole("checkbox", { name: `Select ${finding.finding_id}` }));
+    await user.click(screen.getByRole("button", { name: "Fix selected (1)" }));
+
+    expect(await screen.findByText(/closed, merged, or has no current findings/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Fix selected/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
   it("shows empty and unauthorized states", async () => {
     const { unmount } = render(<AiFixPanel result={{ ...result, findings: [] }} fixing />);
     expect(screen.getByText("No findings available for this pull request.")).toBeInTheDocument();

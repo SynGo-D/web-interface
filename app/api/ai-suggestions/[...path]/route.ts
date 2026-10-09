@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 async function proxy(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const route = path.join("/");
-  if (!/^jobs(?:\/[a-f0-9]{64}(?:\/(validate|publish|retry|merge))?)?$/.test(route)) {
+  const jobRoute = /^jobs(?:\/[a-f0-9]{64}(?:\/(validate|publish|retry|merge))?)?$/.test(route);
+  const fixableRoute = /^repositories\/[a-zA-Z0-9-]{1,100}\/[a-zA-Z0-9_.-]{1,100}\/fixable-pull-requests$/.test(route);
+  if (!jobRoute && !fixableRoute) {
     return NextResponse.json({ error: { message: "Unknown AI endpoint." } }, { status: 404 });
   }
   const authorization = request.headers.get("authorization");
