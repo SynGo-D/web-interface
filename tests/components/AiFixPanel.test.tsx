@@ -6,6 +6,7 @@ import AnalysisDashboard from "@/components/analysis/AnalysisDashboard";
 import { aiRequest } from "@/lib/aiSuggestions";
 import type { AnalysisResult } from "@/lib/api";
 import type { FixJob } from "@/lib/aiTypes";
+import { clearWorkspace, saveWorkspace, type Workspace } from "@/lib/workspace";
 import fixture from "../fixtures/analysis.json";
 
 vi.mock("@/lib/aiSuggestions", () => ({ aiRequest: vi.fn(), activeJob: () => false }));
@@ -22,8 +23,12 @@ const job = {
   validation: null,
 } as unknown as FixJob;
 
+const workspace = (role: Workspace["role"]): Workspace =>
+  ({ organizationId: "o", organizationName: "Org", role, projectId: "p", projectName: "Project" });
+
 beforeEach(() => {
   sessionStorage.clear();
+  clearWorkspace();
   vi.clearAllMocks();
   vi.mocked(aiRequest).mockResolvedValue({ job });
 });
@@ -117,6 +122,7 @@ describe("AI fixing workflow", () => {
   });
 
   it("requires an explicit confirmation before requesting a merge", async () => {
+    saveWorkspace(workspace("MANAGER"));
     vi.mocked(aiRequest).mockResolvedValue({
       job: {
         ...job,
@@ -143,6 +149,21 @@ describe("AI fixing workflow", () => {
         commitSha: "b".repeat(40),
       })
     );
+  });
+
+  it("offers a developer no merge, only who must approve it", async () => {
+    saveWorkspace(workspace("DEVELOPER"));
+    vi.mocked(aiRequest).mockResolvedValue({
+      job: { ...job, status: "pull_request_created", commitSha: "b".repeat(40), fixBranch: "ai-fixes/1/job",
+        targetBranch: "feature", createdPullRequestNumber: 5, pullRequestUrl: "https://github.com/org/repo/pull/5" },
+    });
+    const finding = result.findings[0];
+    const user = userEvent.setup();
+    render(<AiFixPanel result={result} fixing />);
+    await user.click(screen.getByRole("checkbox", { name: `Select ${finding.finding_id}` }));
+    await user.click(screen.getByRole("button", { name: "Fix selected (1)" }));
+    expect(await screen.findByText("A project manager or administrator must approve merging this fix.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review merge confirmation" })).not.toBeInTheDocument();
   });
 
   it("removes finding selection after the PR is merged or no longer fixable", async () => {

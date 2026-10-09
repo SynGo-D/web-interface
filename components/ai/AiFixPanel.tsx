@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { AnalysisResult } from "@/lib/api";
 import type { FixJob } from "@/lib/aiTypes";
 import { activeJob, aiRequest } from "@/lib/aiSuggestions";
+import { WITHHELD, allows } from "@/lib/capabilities";
+import { getWorkspace, noWorkspace, subscribeToWorkspace } from "@/lib/workspace";
 
 const button =
   "rounded-lg bg-[#4338CA] px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40";
@@ -38,6 +40,8 @@ export default function AiFixPanel({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [confirmMerge, setConfirmMerge] = useState(false);
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspace, noWorkspace);
+  const mayMerge = allows(workspace?.role, "aiMerge");
   const [submitted, setSubmitted] = useState(false);
   const mounted = useRef(true);
   const gate = useRef(false);
@@ -410,16 +414,20 @@ export default function AiFixPanel({
               <p className="my-3">
                 Awaiting review or approval. Repository permissions and branch protection apply.
               </p>
-              <button
-                className={button}
-                disabled={busy || !job.commitSha}
-                onClick={() => setConfirmMerge(true)}
-              >
-                Review merge confirmation
-              </button>
+              {mayMerge ? (
+                <button
+                  className={button}
+                  disabled={busy || !job.commitSha}
+                  onClick={() => setConfirmMerge(true)}
+                >
+                  Review merge confirmation
+                </button>
+              ) : (
+                <p className="text-gray-600">{WITHHELD.aiMerge}</p>
+              )}
             </>
           )}
-          {confirmMerge && (
+          {confirmMerge && mayMerge && (
             <div
               role="dialog"
               aria-modal="true"

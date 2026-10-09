@@ -11,6 +11,8 @@ const MANUAL: Record<Capability, { ADMIN: boolean; MANAGER: boolean; DEVELOPER: 
   rules: { ADMIN: true, MANAGER: false, DEVELOPER: true },
   debtAndFixes: { ADMIN: true, MANAGER: false, DEVELOPER: true },
   mergeFix: { ADMIN: true, MANAGER: false, DEVELOPER: true },
+  aiFix: { ADMIN: true, MANAGER: true, DEVELOPER: true },
+  aiMerge: { ADMIN: true, MANAGER: true, DEVELOPER: false },
 };
 
 describe("capabilities", () => {
