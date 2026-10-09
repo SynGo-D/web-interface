@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AnalysisDashboard from "./AnalysisDashboard";
 import AiFixPanel from "@/components/ai/AiFixPanel";
+import { getFixablePullRequests } from "@/lib/aiSuggestions";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "./AnalysisStateBanner";
 import {
   ApiError,
@@ -64,9 +65,11 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
   }, [organizationId, projectId, message]);
 
   // The chosen repository's analysed pull requests, newest run per PR.
-  const showPullRequests = useCallback((results: AnalysisResult[]) => {
+  const showPullRequests = useCallback((results: AnalysisResult[], fixable: Map<number, string> | null = null) => {
     const newestPerPr = new Map<number, PullRequest>();
     for (const run of results) {
+      if (fixing && (run.status !== "completed" || !run.findings.length ||
+        fixable?.get(run.pull_request_number) !== run.commit_sha)) continue;
       if (!newestPerPr.has(run.pull_request_number)) {
         newestPerPr.set(run.pull_request_number, {
           number: run.pull_request_number,
@@ -78,23 +81,28 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
     }
     const list = [...newestPerPr.values()].sort((a, b) => b.number - a.number);
     setPullRequests(list);
+    setResult(null);
     setSelected((previous) =>
       previous !== null && list.some((pr) => pr.number === previous) ? previous : list[0]?.number ?? null
     );
     setError(null);
-  }, []);
+  }, [fixing]);
 
   useEffect(() => {
     if (!repository) return;
     const [owner, name] = repository.split("/");
     let current = true;
-    getRepositoryAnalysis(owner, name, HISTORY_LIMIT)
-      .then((results) => current && showPullRequests(results))
+    Promise.all([
+      getRepositoryAnalysis(owner, name, HISTORY_LIMIT),
+      fixing ? getFixablePullRequests(owner, name) : Promise.resolve(null),
+    ])
+      .then(([results, open]) => current && showPullRequests(results,
+        open ? new Map(open.map(pr => [pr.number, pr.headSha])) : null))
       .catch((err) => current && message(err, "Couldn't load this repository's pull requests."));
     return () => {
       current = false;
     };
-  }, [repository, showPullRequests, message]);
+  }, [repository, fixing, showPullRequests, message]);
 
   // The selected pull request's full analysis.
   const loadResult = useCallback(
@@ -114,7 +122,8 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
   );
 
   useEffect(() => {
-    if (!repository || selected === null) return;
+    if (!repository || selected === null || pullRequests === null ||
+      !pullRequests.some(pr => pr.number === selected)) return;
     const [owner, name] = repository.split("/");
     let current = true;
     getPullRequestAnalysis(owner, name, selected)
@@ -131,7 +140,7 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
     return () => {
       current = false;
     };
-  }, [repository, selected, message]);
+  }, [repository, selected, pullRequests, message]);
 
   // While a review is still running, keep the page up to date on its own.
   const reviewRunning = result?.review?.status === "running" || result?.review?.status === "pending";
@@ -223,7 +232,9 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
       {error && <ErrorBanner message={error} />}
       {!error && integrations === null && <LoadingBanner message="Loading your repositories..." />}
       {!error && integrations !== null && pullRequests?.length === 0 && (
-        <EmptyBanner message={`No pull request of ${repository} has been analysed yet.`} />
+        <EmptyBanner message={fixing
+          ? `No open pull request of ${repository} has current findings available to fix.`
+          : `No pull request of ${repository} has been analysed yet.`} />
       )}
       {!error && selected !== null && !result && <LoadingBanner message="Loading analysis..." />}
       {!error && result && (fixing ? <AiFixPanel key={`${result.repository}:${result.pull_request_number}:${result.commit_sha}`} result={result} fixing /> : <AnalysisDashboard result={result} />)}
