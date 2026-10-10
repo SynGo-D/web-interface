@@ -54,14 +54,17 @@ export default function AiFixPanel({
     if (id) {
       aiRequest(`jobs/${id}`)
         .then((data) => {
-          if (mounted.current && version === requestVersion.current) setJob(data.job);
+          if (mounted.current && version === requestVersion.current) {
+            setJob(data.job);
+            if (fixing) setSubmitted(true);
+          }
         })
         .catch(() => sessionStorage.removeItem(cacheKey));
     }
     return () => {
       mounted.current = false;
     };
-  }, [cacheKey]);
+  }, [cacheKey, fixing]);
 
   useEffect(() => {
     if (!activeJob(job)) return;
@@ -306,6 +309,15 @@ export default function AiFixPanel({
                   {job.error.message}
                 </p>
               )}
+              {job?.status === "failed" && !job.patch && (
+                <button
+                  className={`${button} mt-3`}
+                  disabled={busy}
+                  onClick={() => run(`jobs/${job.id}/retry`, {})}
+                >
+                  Retry job
+                </button>
+              )}
             </div>
           )}
         </>
@@ -405,7 +417,14 @@ export default function AiFixPanel({
           >
             View fix PR #{job.createdPullRequestNumber}
           </a>
-          {job.status !== "merged" && (
+          {job.deliveryMode === "fork_branch" && (
+            <p className="my-3 text-amber-800">
+              This draft fix pull request was created inside the contributor&apos;s fork and targets
+              <strong> {job.targetBranch}</strong>. Merge it on GitHub to update the original pull
+              request. The base repository was not changed.
+            </p>
+          )}
+          {job.status !== "merged" && job.deliveryMode !== "fork_branch" && (
             <>
               <p className="my-3">
                 Awaiting review or approval. Repository permissions and branch protection apply.
