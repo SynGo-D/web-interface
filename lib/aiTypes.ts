@@ -37,6 +37,7 @@ export interface PullRequestContext {
   number: number;
   sourceBranch: string;
   targetBranch: string;
+  deliveryMode: "source_branch" | "fork_branch";
   headSha: string;
   files: Record<string, string>;
   findings: Finding[];
@@ -68,6 +69,7 @@ export interface FixJob {
   pullRequestNumber: number;
   sourceBranch: string;
   targetBranch: string;
+  deliveryMode: "source_branch" | "fork_branch";
   headSha: string;
   selectedFindingIds: string[];
   status: JobStatus;
