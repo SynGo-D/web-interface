@@ -166,6 +166,37 @@ describe("AI fixing workflow", () => {
     expect(screen.queryByRole("button", { name: "Review merge confirmation" })).not.toBeInTheDocument();
   });
 
+  it("allows a failed fixing job to be retried", async () => {
+    const failed = { ...job, status: "failed" as const, patch: null,
+      error: { code: "fork_not_supported", message: "Old deployment rejected this fork." } };
+    vi.mocked(aiRequest)
+      .mockResolvedValueOnce({ job: failed })
+      .mockResolvedValueOnce({ job: { ...failed, status: "queued", error: null } });
+    const finding = result.findings[0];
+    const user = userEvent.setup();
+    render(<AiFixPanel result={result} fixing />);
+    await user.click(screen.getByRole("checkbox", { name: `Select ${finding.finding_id}` }));
+    await user.click(screen.getByRole("button", { name: "Fix selected (1)" }));
+    await user.click(await screen.findByRole("button", { name: "Retry job" }));
+    expect(aiRequest).toHaveBeenLastCalledWith(`jobs/${job.id}/retry`, {});
+  });
+
+  it("shows fork fix PRs without an in-app merge action", async () => {
+    vi.mocked(aiRequest).mockResolvedValue({
+      job: { ...job, status: "pull_request_created", deliveryMode: "fork_branch",
+        targetBranch: "feature", commitSha: "b".repeat(40), fixBranch: "ai-fixes/1/job",
+        createdPullRequestNumber: 6, pullRequestUrl: "https://github.com/org/repo/pull/6" },
+    });
+    const finding = result.findings[0];
+    const user = userEvent.setup();
+    render(<AiFixPanel result={result} fixing />);
+    await user.click(screen.getByRole("checkbox", { name: `Select ${finding.finding_id}` }));
+    await user.click(screen.getByRole("button", { name: "Fix selected (1)" }));
+    expect(await screen.findByText(/draft fix pull request was created inside the contributor's fork/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review merge confirmation" })).not.toBeInTheDocument();
+  });
+
+
   it("removes finding selection after the PR is merged or no longer fixable", async () => {
     vi.mocked(aiRequest).mockResolvedValue({
       job: { ...job, status: "already_fixed", patch: null,
