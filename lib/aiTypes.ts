@@ -21,68 +21,19 @@ export interface Suggestion {
   fixAvailable: boolean;
 }
 
-/** Exact, line-bounded replacements; the service generates the diff itself. */
-export interface Edit {
-  findingId: string;
-  file: string;
-  startLine: number;
-  endLine: number;
-  expected: string;
-  replacement: string;
-}
-
-export interface PullRequestContext {
-  owner: string;
-  repository: string;
-  number: number;
-  sourceBranch: string;
-  targetBranch: string;
-  deliveryMode: "source_branch" | "fork_branch";
-  headSha: string;
-  files: Record<string, string>;
-  findings: Finding[];
-  technicalDebt: Record<string, unknown>;
-  analysis: Record<string, unknown>;
-}
-
-export interface FixablePullRequest {
+export interface SuggestionReadyPullRequest {
   number: number;
   headSha: string;
   sourceBranch: string;
 }
 
-export interface ValidationResult {
-  status: "passed" | "failed";
-  patchDigest: string;
-  headSha: string;
-  checks: { name: string; status: "passed" | "failed" | "unavailable"; details: string }[];
-}
+export type SuggestionJobStatus = "queued" | "collecting" | "generating_suggestion" |
+  "patch_ready" | "already_fixed" | "failed";
 
-export type JobStatus = "queued" | "collecting" | "generating_suggestion" |
-  "patch_ready" | "validating" | "validation_succeeded" | "validation_failed" |
-  "creating_pull_request" | "pull_request_created" | "merged" | "already_fixed" | "failed";
-
-export interface FixJob {
+export interface SuggestionJob {
   id: string;
-  owner: string;
-  repository: string;
-  pullRequestNumber: number;
-  sourceBranch: string;
-  targetBranch: string;
-  deliveryMode: "source_branch" | "fork_branch";
-  headSha: string;
-  selectedFindingIds: string[];
-  status: JobStatus;
+  status: SuggestionJobStatus;
   findings: Finding[];
   suggestions: Suggestion[];
-  patch: string | null;
-  changedFiles: string[];
-  validation: ValidationResult | null;
   error: { code: string; message: string } | null;
-  fixBranch: string | null;
-  commitSha: string | null;
-  pullRequestUrl: string | null;
-  createdPullRequestNumber: number | null;
-  createdAt: string;
-  updatedAt: string;
 }

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AnalysisDashboard from "./AnalysisDashboard";
 import AiFixPanel from "@/components/ai/AiFixPanel";
-import { getFixablePullRequests } from "@/lib/aiSuggestions";
+import { getSuggestionReadyPullRequests } from "@/lib/aiSuggestions";
 import { EmptyBanner, ErrorBanner, LoadingBanner } from "./AnalysisStateBanner";
 import {
   ApiError,
@@ -29,10 +29,10 @@ function repositoryOf(integration: Integration): string {
  * read that PR's review. The repository list comes from the user's own
  * integrations; the pull requests are whichever ones have been analysed.
  */
-export default function PullRequestBrowser({ organizationId, projectId, fixing = false, initialRepository = "", initialNumber = null }: {
+export default function PullRequestBrowser({ organizationId, projectId, suggestionsOnly = false, initialRepository = "", initialNumber = null }: {
   organizationId?: string;
   projectId?: string;
-  fixing?: boolean;
+  suggestionsOnly?: boolean;
   initialRepository?: string;
   initialNumber?: number | null;
 } = {}) {
@@ -68,7 +68,7 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
   const showPullRequests = useCallback((results: AnalysisResult[], fixable: Map<number, string> | null = null) => {
     const newestPerPr = new Map<number, PullRequest>();
     for (const run of results) {
-      if (fixing && (run.status !== "completed" || !run.findings.length ||
+      if (suggestionsOnly && (run.status !== "completed" || !run.findings.length ||
         fixable?.get(run.pull_request_number) !== run.commit_sha)) continue;
       if (!newestPerPr.has(run.pull_request_number)) {
         newestPerPr.set(run.pull_request_number, {
@@ -86,7 +86,7 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
       previous !== null && list.some((pr) => pr.number === previous) ? previous : list[0]?.number ?? null
     );
     setError(null);
-  }, [fixing]);
+  }, [suggestionsOnly]);
 
   useEffect(() => {
     if (!repository) return;
@@ -94,7 +94,7 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
     let current = true;
     Promise.all([
       getRepositoryAnalysis(owner, name, HISTORY_LIMIT),
-      fixing ? getFixablePullRequests(owner, name) : Promise.resolve(null),
+      suggestionsOnly ? getSuggestionReadyPullRequests(owner, name) : Promise.resolve(null),
     ])
       .then(([results, open]) => current && showPullRequests(results,
         open ? new Map(open.map(pr => [pr.number, pr.headSha])) : null))
@@ -102,7 +102,7 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
     return () => {
       current = false;
     };
-  }, [repository, fixing, showPullRequests, message]);
+  }, [repository, suggestionsOnly, showPullRequests, message]);
 
   // The selected pull request's full analysis.
   const loadResult = useCallback(
@@ -232,12 +232,14 @@ export default function PullRequestBrowser({ organizationId, projectId, fixing =
       {error && <ErrorBanner message={error} />}
       {!error && integrations === null && <LoadingBanner message="Loading your repositories..." />}
       {!error && integrations !== null && pullRequests?.length === 0 && (
-        <EmptyBanner message={fixing
-          ? `No open pull request of ${repository} has current findings available to fix.`
+        <EmptyBanner message={suggestionsOnly
+          ? `No open pull request of ${repository} has current findings available for AI suggestions.`
           : `No pull request of ${repository} has been analysed yet.`} />
       )}
       {!error && selected !== null && !result && <LoadingBanner message="Loading analysis..." />}
-      {!error && result && (fixing ? <AiFixPanel key={`${result.repository}:${result.pull_request_number}:${result.commit_sha}`} result={result} fixing /> : <AnalysisDashboard result={result} />)}
+      {!error && result && (suggestionsOnly
+        ? <AiFixPanel key={`${result.repository}:${result.pull_request_number}:${result.commit_sha}`} result={result} standalone />
+        : <AnalysisDashboard result={result} />)}
     </div>
   );
 }

@@ -42,7 +42,7 @@ const menuItems = [
     href: "/developer/contributors",
     icon: FiUsers,
   },
-  { name: "AI Code Fixing", href: "/developer/ai-fixing", icon: FiCpu },
+  { name: "AI Code Suggestion", href: "/developer/ai-fixing", icon: FiCpu },
 ];
 
 const comingSoon = [
