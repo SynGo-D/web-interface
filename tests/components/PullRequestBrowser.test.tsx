@@ -12,7 +12,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 vi.mock("@/lib/aiSuggestions", async (importOriginal) => {
   const actual = await importOriginal<typeof ai>();
-  return { ...actual, getSuggestionReadyPullRequests: vi.fn() };
+  return { ...actual, getFixablePullRequests: vi.fn() };
 });
 
 function integration(owner: string, name: string, id = `${owner}-${name}`): api.Integration {
@@ -37,7 +37,7 @@ beforeEach(() => {
   vi.mocked(api.listIntegrations).mockResolvedValue([integration("acme", "shop"), integration("acme", "web")]);
   vi.mocked(api.getRepositoryAnalysis).mockResolvedValue([result(42), result(7), result(42)]);
   vi.mocked(api.getPullRequestAnalysis).mockImplementation(async (_o, _r, number) => result(number));
-  vi.mocked(ai.getSuggestionReadyPullRequests).mockResolvedValue([]);
+  vi.mocked(ai.getFixablePullRequests).mockResolvedValue([]);
 });
 
 describe("PullRequestBrowser", () => {
@@ -87,7 +87,7 @@ describe("PullRequestBrowser", () => {
     expect(await screen.findByText(/No pull request of acme\/shop has been analysed yet/)).toBeInTheDocument();
   });
 
-  it("offers only open PRs whose current analysed commit has findings for suggestions", async () => {
+  it("offers only open PRs whose current analysed commit still has findings for fixing", async () => {
     const finding: api.Finding = { finding_id: "f1", file_path: "src/a.js", line: 1, column: 1,
       severity: "error", category: "correctness", rule_id: "rule", message: "Problem", tool: "eslint" };
     vi.mocked(api.getRepositoryAnalysis).mockResolvedValue([
@@ -97,24 +97,24 @@ describe("PullRequestBrowser", () => {
     ]);
     vi.mocked(api.getPullRequestAnalysis).mockImplementation(async (_o, _r, number) =>
       result(number, { findings: [finding] }));
-    vi.mocked(ai.getSuggestionReadyPullRequests).mockResolvedValue([
+    vi.mocked(ai.getFixablePullRequests).mockResolvedValue([
       { number: 42, headSha: "abc123", sourceBranch: "feature-42" },
       { number: 7, headSha: "current", sourceBranch: "feature-7" },
       { number: 5, headSha: "abc123", sourceBranch: "feature-5" },
     ]);
 
-    render(<PullRequestBrowser suggestionsOnly />);
+    render(<PullRequestBrowser fixing />);
 
     const prSelect = (await screen.findAllByRole("combobox"))[1];
     await waitFor(() => expect([...prSelect.querySelectorAll("option")].map(o => o.value)).toEqual(["42"]));
-    expect(ai.getSuggestionReadyPullRequests).toHaveBeenCalledWith("acme", "shop");
+    expect(ai.getFixablePullRequests).toHaveBeenCalledWith("acme", "shop");
   });
 
   it("does not load a closed PR supplied in the page URL", async () => {
-    vi.mocked(ai.getSuggestionReadyPullRequests).mockResolvedValue([]);
-    render(<PullRequestBrowser suggestionsOnly initialRepository="acme/shop" initialNumber={42} />);
+    vi.mocked(ai.getFixablePullRequests).mockResolvedValue([]);
+    render(<PullRequestBrowser fixing initialRepository="acme/shop" initialNumber={42} />);
 
-    expect(await screen.findByText(/No open pull request of acme\/shop.*AI suggestions/)).toBeInTheDocument();
+    expect(await screen.findByText(/No open pull request of acme\/shop/)).toBeInTheDocument();
     expect(api.getPullRequestAnalysis).not.toHaveBeenCalled();
   });
 

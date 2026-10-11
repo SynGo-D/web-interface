@@ -35,8 +35,17 @@ describe("Sidebar", () => {
 
     expect(screen.getByRole("link", { name: /Repositories/ })).toHaveAttribute("href", "/repository");
     expect(screen.getByRole("link", { name: /Pull Requests/ })).toHaveAttribute("href", "/developer/pull-requests");
-    expect(screen.getByRole("link", { name: /AI Code Suggestion/ })).toHaveAttribute("href", "/developer/ai-fixing");
-    expect(screen.queryByRole("link", { name: /Debt Calculation/ })).not.toBeInTheDocument();
-    expect(screen.getByText("Debt Calculation")).toBeInTheDocument();
+
+    // Both graduated out of "coming soon" as their pages landed, so the
+    // section is now empty and its heading should not render over nothing.
+    expect(screen.getByRole("link", { name: /Debt Calculation/ })).toHaveAttribute("href", "/developer/debt");
+    expect(screen.getByRole("link", { name: /AI Code Fixing/ })).toHaveAttribute("href", "/developer/ai-fixing");
+    expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+  });
+
+  it("does not link Code Review, whose page is still hard-coded fixtures", () => {
+    render(<Sidebar />);
+
+    expect(screen.queryByRole("link", { name: /Code Review/ })).not.toBeInTheDocument();
   });
 });
