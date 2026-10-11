@@ -35,6 +35,7 @@ describe("Sidebar", () => {
 
     expect(screen.getByRole("link", { name: /Repositories/ })).toHaveAttribute("href", "/repository");
     expect(screen.getByRole("link", { name: /Pull Requests/ })).toHaveAttribute("href", "/developer/pull-requests");
+    expect(screen.getByRole("link", { name: /AI Code Suggestion/ })).toHaveAttribute("href", "/developer/ai-fixing");
     expect(screen.queryByRole("link", { name: /Debt Calculation/ })).not.toBeInTheDocument();
     expect(screen.getByText("Debt Calculation")).toBeInTheDocument();
   });
